@@ -1,0 +1,33 @@
+{
+  "Fallback Momentum": [
+    {
+      "symbol": "BTC-USD",
+      "current_price": 65898.09375,
+      "volume": 2871433216.0,
+      "trade_value": 189221975264832.0,
+      "ret_1_pct": -0.8802257897954191,
+      "ret_4_pct": -1.370068682337,
+      "volume_ratio_20": 4.551878136267044,
+      "atr_pct": 0.005044255290551774,
+      "risk_reward_ratio": 2.5,
+      "theme": "Major",
+      "stop_loss_pct": 2.0,
+      "stop_loss_price": 64580.131875,
+      "target_pct": 5.0,
+      "target_price": 69192.9984375,
+      "agent_fit_score": 1.0,
+      "composite_score": 0.7820290670424677,
+      "final_score": 0.7
+    }
+  ],
+  "metadata": {
+    "run_time": "2026-02-19T14:00:26.872289Z",
+    "market": "CRYPTO",
+    "interval": "1h",
+    "period": "14d",
+    "universe_size": "16",
+    "selection_mode": "hybrid",
+    "max_positions": "3",
+    "fallback_max_entries": "1"
+  }
+}

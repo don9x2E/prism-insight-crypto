@@ -1,0 +1,461 @@
+{
+  "generated_at": "2026-02-19T23:00:39.963172",
+  "period_days": 4,
+  "initial_capital": 1000.0,
+  "summary": {
+    "algorithm_return_pct": -2.199,
+    "btc_return_pct": -4.1228,
+    "alpha_pct": 1.9238,
+    "total_trades": 8,
+    "win_rate": 12.5,
+    "open_positions": 1
+  },
+  "points": [
+    {
+      "date": "2026-02-16",
+      "btc_price": 68716.583375,
+      "btc_return_pct": 0.0,
+      "algorithm_equity": 1000.0,
+      "algorithm_return_pct": 0.0,
+      "benchmark_equity": 1000.0
+    },
+    {
+      "date": "2026-02-17",
+      "btc_price": 68907.783536,
+      "btc_return_pct": 0.2782,
+      "algorithm_equity": 1000.0,
+      "algorithm_return_pct": 0.0,
+      "benchmark_equity": 1002.782446
+    },
+    {
+      "date": "2026-02-18",
+      "btc_price": 67489.455403,
+      "btc_return_pct": -1.7858,
+      "algorithm_equity": 1000.0,
+      "algorithm_return_pct": 0.0,
+      "benchmark_equity": 982.142186
+    },
+    {
+      "date": "2026-02-19",
+      "btc_price": 65883.568251,
+      "btc_return_pct": -4.1228,
+      "algorithm_equity": 978.009772,
+      "algorithm_return_pct": -2.199,
+      "benchmark_equity": 958.772468
+    }
+  ],
+  "holdings": [
+    {
+      "symbol": "BTC-USD",
+      "buy_date": "2026-02-19 22:36:02",
+      "quantity": 0.00151091,
+      "buy_price": 66185.22451172,
+      "current_price": 65898.09375,
+      "notional_usd": 100.0,
+      "market_value_usd": 99.566171,
+      "unrealized_pnl_usd": -0.433829,
+      "profit_rate_pct": -0.4338,
+      "weight_pct": 100.0
+    }
+  ],
+  "order_executions": [
+    {
+      "created_at": "2026-02-19 22:36:02",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 66185.22451172,
+      "quantity": 0.00151091,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-19 22:36:02",
+      "symbol": "ATOM-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 2.31328517,
+      "quantity": 42.1598097,
+      "quote_amount": 97.527663,
+      "fee_amount": 0.097528,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -2.4723,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:36:01",
+      "symbol": "ADA-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 0.27108659,
+      "quantity": 350.96307743,
+      "quote_amount": 95.141385,
+      "fee_amount": 0.095141,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -4.8586,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:36:00",
+      "symbol": "BCH-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 542.7718743,
+      "quantity": 0.177235,
+      "quote_amount": 96.198173,
+      "fee_amount": 0.096198,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -3.8018,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:35:59",
+      "symbol": "NEAR-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 0.99979525,
+      "quantity": 94.80670457,
+      "quote_amount": 94.787293,
+      "fee_amount": 0.094787,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -5.2127,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:35:59",
+      "symbol": "XRP-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 1.39770671,
+      "quantity": 68.13629567,
+      "quote_amount": 95.234557,
+      "fee_amount": 0.095235,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -4.7654,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:35:58",
+      "symbol": "DOGE-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 0.09724208,
+      "quantity": 976.50853401,
+      "quote_amount": 94.95772,
+      "fee_amount": 0.094958,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -5.0423,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:35:58",
+      "symbol": "BTC-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 66119.07236328,
+      "quantity": 0.0014569,
+      "quote_amount": 96.328858,
+      "fee_amount": 0.096329,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -3.6711,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 22:33:18",
+      "symbol": "BTC-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 66151.00170313,
+      "quantity": 0.0014569,
+      "quote_amount": 96.375376,
+      "fee_amount": 0.096375,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": -3.6711,
+      "exit_type": "stop_loss"
+    },
+    {
+      "created_at": "2026-02-19 00:07:02",
+      "symbol": "ATOM-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 2.37192722,
+      "quantity": 42.1598097,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-19 00:07:02",
+      "symbol": "ATOM-USD",
+      "side": "sell",
+      "status": "filled",
+      "executed_price": 2.36955647,
+      "quantity": 45.69123084,
+      "quote_amount": 108.267952,
+      "fee_amount": 0.108268,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": 8.268,
+      "exit_type": "take_profit"
+    },
+    {
+      "created_at": "2026-02-17 00:13:14",
+      "symbol": "ADA-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 0.28493026,
+      "quantity": 350.96307743,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 22:30:33",
+      "symbol": "BCH-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 564.22264417,
+      "quantity": 0.177235,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 21:32:03",
+      "symbol": "NEAR-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 1.05477772,
+      "quantity": 94.80670457,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 21:19:06",
+      "symbol": "ATOM-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 2.18860377,
+      "quantity": 45.69123084,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 17:15:29",
+      "symbol": "XRP-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 1.46764656,
+      "quantity": 68.13629567,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 17:15:29",
+      "symbol": "DOGE-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 0.10240566,
+      "quantity": 976.50853401,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-16 17:15:29",
+      "symbol": "BTC-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 68638.90386328,
+      "quantity": 0.0014569,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    }
+  ],
+  "recent_cycles": [
+    {
+      "started_at": "2026-02-19 23:00:05",
+      "ended_at": null,
+      "status": "running",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-19 22:35:24",
+      "ended_at": "2026-02-19 22:36:06",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 7,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-19 22:32:38",
+      "ended_at": "2026-02-19 22:33:21",
+      "status": "failed",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "crypto_tracking_agent failed with exit code 1"
+    },
+    {
+      "started_at": "2026-02-19 01:00:03",
+      "ended_at": "2026-02-19 01:00:33",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-19 00:46:45",
+      "ended_at": "2026-02-19 00:47:23",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-19 00:06:15",
+      "ended_at": "2026-02-19 00:07:04",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 1,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-17 04:13:31",
+      "ended_at": "2026-02-17 04:14:28",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-17 00:12:42",
+      "ended_at": "2026-02-17 00:13:20",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-16 22:29:49",
+      "ended_at": "2026-02-16 22:30:36",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-16 21:31:46",
+      "ended_at": "2026-02-16 21:32:05",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-16 21:18:51",
+      "ended_at": "2026-02-16 21:19:08",
+      "status": "success",
+      "entry_count": 1,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-16 21:14:27",
+      "ended_at": "2026-02-16 21:14:48",
+      "status": "failed",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "crypto_tracking_agent failed with exit code 1"
+    },
+    {
+      "started_at": "2026-02-16 21:13:43",
+      "ended_at": "2026-02-16 21:13:46",
+      "status": "failed",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "crypto_trigger_batch failed with exit code 1"
+    },
+    {
+      "started_at": "2026-02-16 21:13:13",
+      "ended_at": "2026-02-16 21:13:13",
+      "status": "aborted",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "Superseded by a later cycle"
+    },
+    {
+      "started_at": "2026-02-16 21:12:07",
+      "ended_at": "2026-02-16 21:12:07",
+      "status": "aborted",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "Superseded by a later cycle"
+    },
+    {
+      "started_at": "2026-02-16 21:03:23",
+      "ended_at": "2026-02-16 21:03:23",
+      "status": "aborted",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": "Superseded by a later cycle"
+    }
+  ]
+}
