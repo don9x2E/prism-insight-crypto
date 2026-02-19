@@ -269,6 +269,7 @@ def load_recent_cycles(log_dir: Path, limit: int = 20, stale_minutes: int = 30) 
                     "no_entry_count": 0,
                     "sold_count": 0,
                     "error": None,
+                    "_phase3_done": False,
                 }
                 continue
 
@@ -281,6 +282,7 @@ def load_recent_cycles(log_dir: Path, limit: int = 20, stale_minutes: int = 30) 
                     current["entry_count"] = int(pm.group(1))
                     current["no_entry_count"] = int(pm.group(2))
                     current["sold_count"] = int(pm.group(3))
+                current["_phase3_done"] = True
                 continue
 
             if msg == "Crypto hourly paper cycle completed":
@@ -335,12 +337,23 @@ def load_recent_cycles(log_dir: Path, limit: int = 20, stale_minutes: int = 30) 
         try:
             started = datetime.strptime(str(c.get("started_at")), "%Y-%m-%d %H:%M:%S")
             age_min = (now_dt - started).total_seconds() / 60.0
+            # During benchmark generation, this cycle's trailing
+            # "Saved/completed" log lines might not be written yet.
+            # If phase3 is already complete, treat as successful end.
+            if c.get("_phase3_done"):
+                c["status"] = "success"
+                c["ended_at"] = c.get("ended_at") or now_str
+                c["error"] = None
+                continue
             if age_min >= stale_minutes:
                 c["status"] = "failed"
                 c["ended_at"] = c.get("ended_at") or now_str
                 c["error"] = c.get("error") or f"No completion log after {int(age_min)} minutes (stale)"
         except Exception:
             pass
+
+    for c in cycles:
+        c.pop("_phase3_done", None)
 
     cycles = list(reversed(cycles))
     return cycles[:limit]

@@ -24,6 +24,7 @@ export function DashboardHeader({ activeTab, onTabChange, lastUpdated, market = 
   const { theme, setTheme } = useTheme()
   const { language, setLanguage, t } = useLanguage()
   const isCryptoTab = activeTab === "crypto-benchmark"
+  const isCryptoOnly = !onMarketChange
 
   const formatLastUpdated = () => {
     if (!lastUpdated) return t("header.realtimeUpdate")
@@ -313,6 +314,16 @@ export function DashboardHeader({ activeTab, onTabChange, lastUpdated, market = 
 
         {/* Navigation Tabs */}
         <nav className="hidden md:flex items-center gap-1 pb-3 border-t border-border/30 pt-2">
+          {isCryptoOnly ? (
+            <Button
+              variant="secondary"
+              onClick={() => onTabChange("crypto-benchmark")}
+              className="font-medium"
+            >
+              ₿ {language === "ko" ? "크립토 벤치마크" : "Crypto Benchmark"}
+            </Button>
+          ) : (
+            <>
           <Button
             variant={activeTab === "dashboard" ? "secondary" : "ghost"}
             onClick={() => onTabChange("dashboard")}
@@ -362,10 +373,23 @@ export function DashboardHeader({ activeTab, onTabChange, lastUpdated, market = 
               🧪 {language === "ko" ? "실험실" : "Lab"}
             </Button>
           )}
+            </>
+          )}
         </nav>
 
         {/* Mobile Navigation */}
         <nav className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
+          {isCryptoOnly ? (
+            <Button
+              variant="secondary"
+              onClick={() => onTabChange("crypto-benchmark")}
+              size="sm"
+              className="font-medium whitespace-nowrap"
+            >
+              ₿ {language === "ko" ? "크립토 벤치마크" : "Crypto Benchmark"}
+            </Button>
+          ) : (
+            <>
           <Button
             variant={activeTab === "dashboard" ? "secondary" : "ghost"}
             onClick={() => onTabChange("dashboard")}
@@ -420,6 +444,8 @@ export function DashboardHeader({ activeTab, onTabChange, lastUpdated, market = 
             >
               🧪 {language === "ko" ? "실험실" : "Lab"}
             </Button>
+          )}
+            </>
           )}
         </nav>
       </div>

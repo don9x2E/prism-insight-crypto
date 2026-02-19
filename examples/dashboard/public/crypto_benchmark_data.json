@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-02-19T23:00:39.963172",
+  "generated_at": "2026-02-19T23:26:21.731960",
   "period_days": 4,
   "initial_capital": 1000.0,
   "summary": {
     "algorithm_return_pct": -2.199,
-    "btc_return_pct": -4.1228,
-    "alpha_pct": 1.9238,
+    "btc_return_pct": -3.6235,
+    "alpha_pct": 1.4245,
     "total_trades": 8,
     "win_rate": 12.5,
     "open_positions": 1
@@ -13,35 +13,19 @@
   "points": [
     {
       "date": "2026-02-16",
-      "btc_price": 68716.583375,
+      "btc_price": 68638.903863,
       "btc_return_pct": 0.0,
       "algorithm_equity": 1000.0,
       "algorithm_return_pct": 0.0,
       "benchmark_equity": 1000.0
     },
     {
-      "date": "2026-02-17",
-      "btc_price": 68907.783536,
-      "btc_return_pct": 0.2782,
-      "algorithm_equity": 1000.0,
-      "algorithm_return_pct": 0.0,
-      "benchmark_equity": 1002.782446
-    },
-    {
-      "date": "2026-02-18",
-      "btc_price": 67489.455403,
-      "btc_return_pct": -1.7858,
-      "algorithm_equity": 1000.0,
-      "algorithm_return_pct": 0.0,
-      "benchmark_equity": 982.142186
-    },
-    {
       "date": "2026-02-19",
-      "btc_price": 65883.568251,
-      "btc_return_pct": -4.1228,
+      "btc_price": 66151.766193,
+      "btc_return_pct": -3.6235,
       "algorithm_equity": 978.009772,
       "algorithm_return_pct": -2.199,
-      "benchmark_equity": 958.772468
+      "benchmark_equity": 963.764898
     }
   ],
   "holdings": [
@@ -315,8 +299,8 @@
   "recent_cycles": [
     {
       "started_at": "2026-02-19 23:00:05",
-      "ended_at": null,
-      "status": "running",
+      "ended_at": "2026-02-19 23:00:40",
+      "status": "success",
       "entry_count": 0,
       "no_entry_count": 0,
       "sold_count": 0,
