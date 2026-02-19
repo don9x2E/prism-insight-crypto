@@ -11,7 +11,8 @@ Crypto-only fork of Prism Insight focused on hourly paper trading and dashboard 
 
 ## Quick Start (Windows)
 ```powershell
-cd C:\DEVENV\prism_insight\prism-insight-main
+# after cloning this repository
+cd prism-insight-crypto
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 

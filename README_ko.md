@@ -11,7 +11,8 @@ Prism Insight를 Crypto 전용으로 정리한 포크입니다.
 
 ## 빠른 실행
 ```powershell
-cd C:\DEVENV\prism_insight\prism-insight-main
+# 저장소 clone 후
+cd prism-insight-crypto
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
