@@ -18,7 +18,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Header
     "header.season": "Season 2",
     "header.openSource": "Open Source",
-    "header.tooltip.openSource": "AI 기반 주식 분석 및 매매 시스템 • MIT License",
+    "header.tooltip.openSource": "AI 기반 크립토 분석 및 페이퍼 트레이딩 시스템 • MIT License",
     "header.startDate": "시작: 2025.09.29",
     "header.updated": "업데이트",
     "header.realtimeUpdate": "실시간 업데이트",
@@ -28,7 +28,7 @@ const translations: Record<Language, Record<string, string>> = {
     "header.watchlist": "관심 종목",
     "header.insights": "인사이트",
     "header.tooltip.github": "GitHub 저장소",
-    "header.tooltip.telegram": "텔레그램 채널",
+    "header.tooltip.telegram": "이슈 & 피드백",
     "header.tooltip.theme": "테마 전환",
 
     // Loading
@@ -106,7 +106,7 @@ const translations: Record<Language, Record<string, string>> = {
     "costs.year": "년",
     "costs.month": "월",
     "costs.helpQuestion": "이 프로젝트가 도움이 되셨나요?",
-    "costs.sponsorDesc": "GitHub Sponsor를 통해 프로젝트의 지속 가능한 개발을 지원해주세요",
+    "costs.sponsorDesc": "GitHub Sponsor를 통해 이 포크 프로젝트의 지속 가능한 개발을 지원해주세요",
     "costs.becomeSponsor": "스폰서 되기",
 
     // Badges
@@ -325,7 +325,7 @@ const translations: Record<Language, Record<string, string>> = {
     "trading.mddGood": "✓ 10% 이하: 우수 (안정적인 운용)",
     "trading.mddNeutral": "• 10%~20%: 보통 (일반적인 변동성)",
     "trading.mddBad": "✗ 20% 초과: 주의 (높은 변동성)",
-    "trading.alphaTooltip": "시장(KOSPI) 수익률을 초과하는 수익률입니다. 펀드매니저의 실력을 나타내는 대표적 지표로, 시장 대비 얼마나 더 (또는 덜) 벌었는지를 보여줍니다.",
+    "trading.alphaTooltip": "벤치마크(BTC) 수익률을 초과하는 수익률입니다. 전략이 시장 대비 얼마나 더 (또는 덜) 벌었는지를 보여줍니다.",
     "trading.alphaGood": "✓ 양수(+): 시장을 이김 (시장보다 우수한 성과)",
     "trading.alphaBad": "✗ 음수(-): 시장에 짐 (시장보다 부진한 성과)",
     "trading.betaTooltip": "시장 대비 변동성을 나타냅니다. 시장이 1% 움직일 때 포트폴리오가 얼마나 움직이는지를 보여줍니다.",
@@ -336,7 +336,7 @@ const translations: Record<Language, Record<string, string>> = {
     "trading.sharpeGood": "✓ 1.0 이상: 우수 (위험 대비 높은 수익)",
     "trading.sharpeNeutral": "• 0~1.0: 보통 (양호한 수준)",
     "trading.sharpeBad": "✗ 0 미만: 주의 (무위험 자산보다 못함)",
-    "trading.irTooltip": "벤치마크(KOSPI) 대비 초과수익을 추적오차(변동성)로 나눈 값입니다. 일관성 있게 시장을 이기는지를 평가합니다.",
+    "trading.irTooltip": "벤치마크(BTC) 대비 초과수익을 추적오차(변동성)로 나눈 값입니다. 일관성 있게 시장을 이기는지를 평가합니다.",
     "trading.irGood": "✓ 0.5 이상: 우수 (일관되게 시장 초과)",
     "trading.irNeutral": "• 0~0.5: 보통 (약간의 초과수익)",
     "trading.irBad": "✗ 0 미만: 주의 (시장 대비 부진)",
@@ -486,24 +486,25 @@ const translations: Record<Language, Record<string, string>> = {
     "insights.triggerReliability.viewDetails": "상세보기",
 
     // Footer
-    "footer.description": "AI 기반 주식 분석 및 매매 시스템",
+    "footer.description": "AI 기반 크립토 분석 및 페이퍼 트레이딩 시스템",
     "footer.openSource": "완전 오픈소스 무료 프로젝트 • MIT License",
     "footer.features": "주요 기능",
     "footer.feature1": "12개 AI 에이전트 협업 분석",
-    "footer.feature2": "급등주 자동 포착 & 리포트",
+    "footer.feature2": "시그널 기반 코인 후보 자동 선별",
     "footer.feature3": "매매 시뮬레이션 & 자동매매",
     "footer.feature4": "실시간 성과 대시보드",
     "footer.links": "바로가기",
     "footer.sourceCode": "소스코드 & 이슈 관리",
-    "footer.telegramDesc": "급등주 & 분석 리포트",
-    "footer.stars": "10주 만에 250+ Stars 달성",
+    "footer.telegramDesc": "버그 리포트 & 기능 제안",
+    "footer.landingDesc": "저장소, 설정 가이드, 릴리즈 노트",
+    "footer.stars": "GitHub Stars 보기",
     "footer.disclaimer": "⚠️ 본 시스템에서 제공하는 분석 정보는 투자 참고용이며, 투자 권유를 목적으로 하지 않습니다. 모든 투자 결정과 그에 따른 손익은 투자자 본인의 책임입니다.",
   },
   en: {
     // Header
     "header.season": "Season 2",
     "header.openSource": "Open Source",
-    "header.tooltip.openSource": "AI-powered Stock Analysis & Trading System • MIT License",
+    "header.tooltip.openSource": "AI-powered Crypto Analysis & Paper Trading System • MIT License",
     "header.startDate": "Start: 2025.09.29",
     "header.updated": "Updated",
     "header.realtimeUpdate": "Real-time Update",
@@ -513,7 +514,7 @@ const translations: Record<Language, Record<string, string>> = {
     "header.watchlist": "Watchlist",
     "header.insights": "Insights",
     "header.tooltip.github": "GitHub Repository",
-    "header.tooltip.telegram": "Telegram Channel",
+    "header.tooltip.telegram": "Issues & Feedback",
     "header.tooltip.theme": "Toggle Theme",
 
     // Loading
@@ -591,7 +592,7 @@ const translations: Record<Language, Record<string, string>> = {
     "costs.year": "",
     "costs.month": "",
     "costs.helpQuestion": "Has this project helped you?",
-    "costs.sponsorDesc": "Support sustainable development via GitHub Sponsor",
+    "costs.sponsorDesc": "Support sustainable development of this fork via GitHub Sponsor",
     "costs.becomeSponsor": "Become a Sponsor",
 
     // Badges
@@ -810,7 +811,7 @@ const translations: Record<Language, Record<string, string>> = {
     "trading.mddGood": "✓ Below 10%: Excellent (Stable management)",
     "trading.mddNeutral": "• 10%-20%: Average (Normal volatility)",
     "trading.mddBad": "✗ Above 20%: Warning (High volatility)",
-    "trading.alphaTooltip": "Excess return above the market (KOSPI). A key measure of investment skill - shows how much more (or less) you earned compared to the market.",
+    "trading.alphaTooltip": "Excess return above benchmark (BTC). Shows how much more (or less) the strategy earned versus market.",
     "trading.alphaGood": "✓ Positive (+): Beating the market",
     "trading.alphaBad": "✗ Negative (-): Underperforming the market",
     "trading.betaTooltip": "Measures volatility relative to the market. Shows how much your portfolio moves when the market moves 1%.",
@@ -821,7 +822,7 @@ const translations: Record<Language, Record<string, string>> = {
     "trading.sharpeGood": "✓ Above 1.0: Excellent (High return for risk taken)",
     "trading.sharpeNeutral": "• 0-1.0: Average (Acceptable level)",
     "trading.sharpeBad": "✗ Below 0: Warning (Worse than risk-free assets)",
-    "trading.irTooltip": "Excess return over benchmark (KOSPI) divided by tracking error. Evaluates how consistently you beat the market.",
+    "trading.irTooltip": "Excess return over benchmark (BTC) divided by tracking error. Evaluates consistency of outperformance.",
     "trading.irGood": "✓ Above 0.5: Excellent (Consistently beats market)",
     "trading.irNeutral": "• 0-0.5: Average (Slight outperformance)",
     "trading.irBad": "✗ Below 0: Warning (Underperforming market)",
@@ -971,17 +972,18 @@ const translations: Record<Language, Record<string, string>> = {
     "insights.triggerReliability.viewDetails": "View Details",
 
     // Footer
-    "footer.description": "AI-powered Stock Analysis & Trading System",
+    "footer.description": "AI-powered Crypto Analysis & Paper Trading System",
     "footer.openSource": "Fully Open Source & Free • MIT License",
     "footer.features": "Key Features",
     "footer.feature1": "12 AI Agents Collaborative Analysis",
-    "footer.feature2": "Automated Surge Stock Detection & Reports",
+    "footer.feature2": "Signal-based automated crypto candidate selection",
     "footer.feature3": "Trading Simulation & Auto Trading",
     "footer.feature4": "Real-time Performance Dashboard",
     "footer.links": "Quick Links",
     "footer.sourceCode": "Source Code & Issues",
-    "footer.telegramDesc": "Surge Stocks & Analysis Reports",
-    "footer.stars": "250+ Stars in 10 weeks",
+    "footer.telegramDesc": "Bug reports & feature requests",
+    "footer.landingDesc": "Repository, setup guide, and release notes",
+    "footer.stars": "View GitHub stars",
     "footer.disclaimer": "⚠️ The analysis information provided by this system is for reference only and is not intended as investment advice. All investment decisions and resulting profits/losses are the sole responsibility of the investor.",
   },
 }

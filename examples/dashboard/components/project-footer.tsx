@@ -15,7 +15,7 @@ export function ProjectFooter() {
               {/* 프로젝트 소개 */}
               <div className="space-y-3">
                 <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  🔍 PRISM-INSIGHT
+                  🔍 PRISM-INSIGHT CRYPTO
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t("footer.description")}
@@ -73,7 +73,7 @@ export function ProjectFooter() {
                 <div className="flex flex-col gap-3">
                   {/* GitHub */}
                   <a
-                    href="https://github.com/dragon1086/prism-insight"
+                    href="https://github.com/don9x2E/prism-insight-crypto"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 p-3 rounded-lg bg-background/60 hover:bg-background/80 border border-border/50 hover:border-border transition-all duration-200 hover:shadow-md"
@@ -91,9 +91,9 @@ export function ProjectFooter() {
                     </div>
                   </a>
 
-                  {/* Telegram */}
+                  {/* Issues */}
                   <a
-                    href="https://t.me/stock_ai_agent"
+                    href="https://github.com/don9x2E/prism-insight-crypto/issues"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 p-3 rounded-lg bg-background/60 hover:bg-background/80 border border-border/50 hover:border-border transition-all duration-200 hover:shadow-md"
@@ -103,7 +103,7 @@ export function ProjectFooter() {
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-foreground group-hover:text-blue-500 transition-colors">
-                        Telegram Channel
+                        Issues & Feedback
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {t("footer.telegramDesc")}
@@ -111,9 +111,9 @@ export function ProjectFooter() {
                     </div>
                   </a>
 
-                  {/* Landing Page */}
+                  {/* Project Home */}
                   <a
-                    href="https://prism-insight-landing.vercel.app"
+                    href="https://github.com/don9x2E/prism-insight-crypto"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 p-3 rounded-lg bg-background/60 hover:bg-background/80 border border-border/50 hover:border-border transition-all duration-200 hover:shadow-md"
@@ -123,10 +123,10 @@ export function ProjectFooter() {
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-medium text-foreground group-hover:text-emerald-500 transition-colors">
-                        About PRISM-INSIGHT
+                        Project Home
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {t("footer.landingDesc") || "Project introduction & features"}
+                        {t("footer.landingDesc") || "Repository, setup guide, and release notes"}
                       </div>
                     </div>
                   </a>
@@ -135,7 +135,7 @@ export function ProjectFooter() {
                 {/* Star 통계 */}
                 <div className="pt-2">
                   <a
-                    href="https://github.com/dragon1086/prism-insight"
+                    href="https://github.com/don9x2E/prism-insight-crypto"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
@@ -152,32 +152,24 @@ export function ProjectFooter() {
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
                 <div className="flex flex-col md:flex-row items-center gap-2">
                   <div className="flex items-center gap-2">
-                    <span>© 2025 PRISM-INSIGHT</span>
+                    <span>© 2025 PRISM-INSIGHT CRYPTO</span>
                     <span className="hidden md:inline">•</span>
                     <span className="text-xs">All rights reserved</span>
                   </div>
-                  {/* Platinum Sponsor - Inline */}
                   <div className="flex items-center gap-2">
                     <span className="hidden md:inline text-muted-foreground/40">•</span>
                     <a
-                      href="https://wrks.ai/en"
+                      href="https://github.com/dragon1086/prism-insight"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-2 px-2.5 py-1 rounded-md bg-gradient-to-r from-amber-500/5 to-yellow-500/5 hover:from-amber-500/10 hover:to-yellow-500/10 border border-amber-500/20 transition-all duration-200"
+                      className="group flex items-center gap-2 px-2.5 py-1 rounded-md bg-gradient-to-r from-blue-500/5 to-cyan-500/5 hover:from-blue-500/10 hover:to-cyan-500/10 border border-blue-500/20 transition-all duration-200"
                     >
-                      <span className="text-[10px] text-amber-600/80 dark:text-amber-400/80 font-medium uppercase tracking-wider">
-                        Platinum Sponsor
+                      <span className="text-[10px] text-blue-600/80 dark:text-blue-400/80 font-medium uppercase tracking-wider">
+                        Forked From Original
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <img
-                          src="/wrks_ai_logo.png"
-                          alt="WrksAI"
-                          className="h-3.5 w-auto opacity-80 group-hover:opacity-100 transition-opacity"
-                        />
-                        <span className="text-xs text-muted-foreground/90 group-hover:text-foreground transition-colors font-medium">
-                          WrksAI
-                        </span>
-                      </div>
+                      <span className="text-xs text-muted-foreground/90 group-hover:text-foreground transition-colors font-medium">
+                        dragon1086/prism-insight
+                      </span>
                     </a>
                   </div>
                 </div>

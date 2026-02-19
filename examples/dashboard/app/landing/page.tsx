@@ -28,7 +28,7 @@ function useGitHubStars() {
   const [stars, setStars] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch('https://api.github.com/repos/dragon1086/prism-insight')
+    fetch('https://api.github.com/repos/don9x2E/prism-insight-crypto')
       .then(res => res.json())
       .then(data => setStars(data.stargazers_count))
       .catch(() => setStars(null))
@@ -89,7 +89,7 @@ function MatrixRain() {
     resize()
     window.addEventListener('resize', resize)
 
-    const chars = '01アイウエオカキクケコ株価分析PRISM'
+    const chars = '01AIBTCETHSOLPRISMCRYPTO'
     const fontSize = 14
     const columns = Math.floor(canvas.width / fontSize)
     const drops: number[] = Array(columns).fill(1)
@@ -175,14 +175,15 @@ export default function LandingPage() {
   const [videoPlaying, setVideoPlaying] = useState(false)
 
   const quickstartCode = `# 1. Clone repository
-git clone https://github.com/dragon1086/prism-insight.git
-cd prism-insight
+git clone https://github.com/don9x2E/prism-insight-crypto.git
+cd prism-insight-crypto
 
-# 2. Quick setup (requires OpenAI API key)
-./quickstart.sh YOUR_OPENAI_API_KEY
+# 2. Run one crypto cycle (paper mode)
+powershell -ExecutionPolicy Bypass -File .\\scripts\\crypto_hourly_paper.ps1
 
-# 3. Generate a PDF report (demo.py = report generation only)
-python demo.py AAPL`
+# 3. Open dashboard
+cd .\\examples\\dashboard
+npm run dev`
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 overflow-x-hidden">
@@ -227,7 +228,7 @@ python demo.py AAPL`
           <div className="h-16 md:h-12 mb-8">
             <p className="text-xl md:text-2xl font-mono text-zinc-400">
               <TypewriterText
-                text="AI-powered Korean & US stock analysis with automated trading"
+                text="AI-powered crypto analysis with automated paper trading"
                 delay={40}
               />
             </p>
@@ -235,8 +236,8 @@ python demo.py AAPL`
 
           {/* Description */}
           <p className="text-lg text-zinc-500 max-w-2xl mx-auto mb-12 leading-relaxed">
-            13 specialized AI agents analyze markets in real-time, generate trading signals,
-            and execute trades automatically via Telegram alerts.
+            AI agents analyze crypto markets in real-time, generate trading signals,
+            and execute paper trades automatically on each cycle.
           </p>
 
           {/* CTA Buttons */}
@@ -246,7 +247,7 @@ python demo.py AAPL`
               className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-8 h-12 text-base gap-2 group"
               asChild
             >
-              <a href="https://github.com/dragon1086/prism-insight" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/don9x2E/prism-insight-crypto" target="_blank" rel="noopener noreferrer">
                 <Github className="w-5 h-5" />
                 <span>Star on GitHub</span>
                 {stars !== null && (
@@ -264,9 +265,9 @@ python demo.py AAPL`
               className="border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 px-8 h-12 text-base gap-2"
               asChild
             >
-              <a href="https://analysis.stocksimulation.kr" target="_blank" rel="noopener noreferrer">
+              <a href="/?tab=crypto-benchmark" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-5 h-5" />
-                Live Dashboard
+                Crypto Dashboard
               </a>
             </Button>
           </div>
@@ -281,31 +282,31 @@ python demo.py AAPL`
                   <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <div className="w-3 h-3 rounded-full bg-green-500/80" />
                 </div>
-                <span className="text-xs font-mono text-zinc-500 ml-2">prism-insight — python</span>
+                <span className="text-xs font-mono text-zinc-500 ml-2">prism-insight-crypto - python</span>
               </div>
               <CardContent className="p-0">
                 <pre className="p-4 text-sm font-mono text-left overflow-x-auto">
-                  <code className="text-emerald-400">$ python demo.py NVDA</code>
+                  <code className="text-emerald-400">$ python -m crypto.crypto_trigger_batch --interval 1h --period 14d --output crypto_candidates.json</code>
                   {'\n\n'}
-                  <code className="text-zinc-500">Looking up company name for NVDA...</code>
+                  <code className="text-zinc-500">Loading OHLCV data for selected crypto universe...</code>
                   {'\n'}
-                  <code className="text-zinc-400">Found: NVIDIA Corporation</code>
+                  <code className="text-zinc-400">Symbols: BTC-USD, ETH-USD, SOL-USD, ...</code>
                   {'\n\n'}
-                  <code className="text-cyan-400">[1/3] Generating AI analysis report...</code>
+                  <code className="text-cyan-400">[1/3] Building trigger snapshot...</code>
                   {'\n'}
-                  <code className="text-zinc-500">      This may take 3-5 minutes. AI agents are analyzing:</code>
+                  <code className="text-zinc-500">      Running Volume Momentum / VTE / Range Breakout...</code>
                   {'\n'}
                   <code className="text-zinc-500">      - Price & volume trends</code>
                   {'\n'}
-                  <code className="text-zinc-500">      - Financial fundamentals</code>
+                  <code className="text-zinc-500">      - Volatility expansion and breakout quality</code>
                   {'\n'}
-                  <code className="text-zinc-500">      - Investment strategy</code>
+                  <code className="text-zinc-500">      - Exit rules, stop-loss, trailing stop</code>
                   {'\n\n'}
-                  <code className="text-emerald-400">[2/3] Analysis complete! (185.2 seconds)</code>
+                  <code className="text-emerald-400">[2/3] Candidate generation complete</code>
                   {'\n'}
-                  <code className="text-emerald-400">[3/3] Saving report files...</code>
+                  <code className="text-emerald-400">[3/3] Executing paper orders & updating dashboard json...</code>
                   {'\n\n'}
-                  <code className="text-yellow-400">  PDF: prism-us/pdf_reports/NVDA_20260201.pdf</code>
+                  <code className="text-yellow-400">  Saved: examples/dashboard/public/crypto_benchmark_data.json</code>
                 </pre>
               </CardContent>
             </Card>
@@ -331,7 +332,7 @@ python demo.py AAPL`
               <span className="text-zinc-500">One Mission.</span>
             </h2>
             <p className="text-zinc-500 max-w-xl mx-auto">
-              Each agent specializes in a specific aspect of stock analysis,
+              Each agent specializes in a specific aspect of crypto analysis,
               working together to provide comprehensive market insights.
             </p>
           </div>
@@ -370,9 +371,9 @@ python demo.py AAPL`
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 mb-6">
                 <Globe className="w-8 h-8 text-emerald-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Dual Market Support</h3>
+              <h3 className="text-xl font-semibold mb-3">Crypto Universe Support</h3>
               <p className="text-zinc-500">
-                KOSPI/KOSDAQ and NYSE/NASDAQ. Analyze any market with the same powerful engine.
+                Major crypto symbols with a unified signal engine and paper execution loop.
               </p>
             </div>
 
@@ -380,9 +381,9 @@ python demo.py AAPL`
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 mb-6">
                 <Bell className="w-8 h-8 text-cyan-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Telegram Alerts</h3>
+              <h3 className="text-xl font-semibold mb-3">Cycle Monitoring</h3>
               <p className="text-zinc-500">
-                Real-time trading signals delivered directly to your phone. Never miss an opportunity.
+                Hourly cycle status, trade history, and holdings visible in one dashboard.
               </p>
             </div>
 
@@ -390,9 +391,9 @@ python demo.py AAPL`
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 mb-6">
                 <Zap className="w-8 h-8 text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Auto Trading</h3>
+              <h3 className="text-xl font-semibold mb-3">Paper Trading</h3>
               <p className="text-zinc-500">
-                Execute trades automatically via KIS API. Set it and forget it.
+                Execute buy/sell logic in paper mode first, then expand to real exchange APIs.
               </p>
             </div>
           </div>
@@ -407,7 +408,7 @@ python demo.py AAPL`
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-zinc-800 text-zinc-300 border-zinc-700">Demo</Badge>
             <h2 className="text-4xl font-bold mb-4">See It In Action</h2>
-            <p className="text-zinc-500">Watch how PRISM-INSIGHT analyzes stocks in real-time</p>
+            <p className="text-zinc-500">Watch how PRISM-INSIGHT CRYPTO runs analysis cycles in real-time</p>
           </div>
 
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800">
@@ -415,7 +416,7 @@ python demo.py AAPL`
               <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                 <Image
                   src={`https://img.youtube.com/vi/LVOAdVCh1QE/maxresdefault.jpg`}
-                  alt="PRISM-INSIGHT Demo Video"
+                  alt="PRISM-INSIGHT CRYPTO Demo Video"
                   fill
                   className="object-cover opacity-50"
                 />
@@ -429,7 +430,7 @@ python demo.py AAPL`
             ) : (
               <iframe
                 src="https://www.youtube.com/embed/LVOAdVCh1QE?autoplay=1"
-                title="PRISM-INSIGHT Demo"
+                title="PRISM-INSIGHT CRYPTO Demo"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="absolute inset-0 w-full h-full"
@@ -463,17 +464,17 @@ python demo.py AAPL`
                   <code className="text-zinc-400">
                     <span className="text-zinc-500"># 1. Clone repository</span>
                     {'\n'}
-                    <span className="text-emerald-400">git clone</span> https://github.com/dragon1086/prism-insight.git
+                    <span className="text-emerald-400">git clone</span> https://github.com/don9x2E/prism-insight-crypto.git
                     {'\n'}
-                    <span className="text-cyan-400">cd</span> prism-insight
+                    <span className="text-cyan-400">cd</span> prism-insight-crypto
                     {'\n\n'}
-                    <span className="text-zinc-500"># 2. Quick setup (requires OpenAI API key)</span>
+                    <span className="text-zinc-500"># 2. Run one paper cycle</span>
                     {'\n'}
-                    <span className="text-cyan-400">./quickstart.sh</span> <span className="text-yellow-400">YOUR_OPENAI_API_KEY</span>
+                    <span className="text-cyan-400">powershell -ExecutionPolicy Bypass -File</span> <span className="text-yellow-400">.\\scripts\\crypto_hourly_paper.ps1</span>
                     {'\n\n'}
-                    <span className="text-zinc-500"># 3. Generate a PDF report (demo.py = report only)</span>
+                    <span className="text-zinc-500"># 3. Start dashboard</span>
                     {'\n'}
-                    <span className="text-emerald-400">python</span> demo.py <span className="text-yellow-400">AAPL</span>
+                    <span className="text-cyan-400">cd</span> .\\examples\\dashboard && <span className="text-emerald-400">npm run dev</span>
                   </code>
                 </pre>
               </CardContent>
@@ -483,12 +484,12 @@ python demo.py AAPL`
           <p className="text-center text-sm text-zinc-600 mt-6">
             Or try the{' '}
             <a
-              href="https://github.com/dragon1086/prism-insight#option-b-docker-recommended-for-production"
+              href="https://github.com/don9x2E/prism-insight-crypto"
               target="_blank"
               rel="noopener noreferrer"
               className="text-emerald-400 hover:text-emerald-300 underline underline-offset-4"
             >
-              Docker installation
+              repository guide
             </a>
             {' '}for containerized deployment
           </p>
@@ -510,7 +511,7 @@ python demo.py AAPL`
               <div className="relative bg-zinc-950 p-2">
                 <Image
                   src="/screenshots/dashboard_screenshot.png"
-                  alt="PRISM-INSIGHT Dashboard"
+                  alt="PRISM-INSIGHT CRYPTO Dashboard"
                   width={800}
                   height={500}
                   className="w-full h-auto rounded-lg group-hover:scale-[1.02] transition-transform duration-500"
@@ -561,7 +562,7 @@ python demo.py AAPL`
                   <Bell className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-medium text-zinc-200">Telegram Alerts</span>
                 </div>
-                <p className="text-xs text-zinc-500 mt-1">Instant buy/sell signals delivered to your phone</p>
+                <p className="text-xs text-zinc-500 mt-1">Cycle execution logs and status monitoring</p>
               </div>
             </div>
 
@@ -581,7 +582,7 @@ python demo.py AAPL`
                   <Zap className="w-4 h-4 text-purple-400" />
                   <span className="text-sm font-medium text-zinc-200">Auto Trading</span>
                 </div>
-                <p className="text-xs text-zinc-500 mt-1">Automated execution via KIS API</p>
+                <p className="text-xs text-zinc-500 mt-1">Automated execution in crypto paper mode</p>
               </div>
             </div>
           </div>
@@ -597,7 +598,7 @@ python demo.py AAPL`
 
           <h2 className="text-4xl font-bold mb-6">Support the Project</h2>
           <p className="text-zinc-500 mb-8 leading-relaxed">
-            PRISM-INSIGHT is free and open source. If it helps your trading,
+            PRISM-INSIGHT CRYPTO is free and open source. If it helps your trading,
             consider supporting the development.
           </p>
 
@@ -607,7 +608,7 @@ python demo.py AAPL`
               className="bg-pink-500 hover:bg-pink-400 text-white font-semibold px-8 h-12"
               asChild
             >
-              <a href="https://github.com/sponsors/dragon1086" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/sponsors/don9x2E" target="_blank" rel="noopener noreferrer">
                 <Heart className="w-5 h-5 mr-2" />
                 Become a Sponsor
               </a>
@@ -619,7 +620,7 @@ python demo.py AAPL`
               className="border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 px-8 h-12"
               asChild
             >
-              <a href="https://github.com/dragon1086/prism-insight" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/don9x2E/prism-insight-crypto" target="_blank" rel="noopener noreferrer">
                 <Star className="w-5 h-5 mr-2" />
                 Star on GitHub
               </a>
@@ -645,7 +646,7 @@ python demo.py AAPL`
 
             <div className="flex items-center gap-6 text-sm text-zinc-500">
               <a
-                href="https://github.com/dragon1086/prism-insight"
+                href="https://github.com/don9x2E/prism-insight-crypto"
                 className="hover:text-zinc-300 transition-colors flex items-center gap-2"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -654,7 +655,7 @@ python demo.py AAPL`
                 GitHub
               </a>
               <a
-                href="https://analysis.stocksimulation.kr"
+                href="/?tab=crypto-benchmark"
                 className="hover:text-zinc-300 transition-colors flex items-center gap-2"
                 target="_blank"
                 rel="noopener noreferrer"

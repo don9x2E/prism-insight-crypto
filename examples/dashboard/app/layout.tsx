@@ -9,8 +9,8 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Prism Insight Dashboard",
-  description: "AI Agent-based Korean Stock Analysis & Trading System",
+  title: "Prism Insight Crypto Dashboard",
+  description: "AI Agent-based Crypto Analysis & Paper Trading Dashboard",
   generator: "v0.app",
 }
 

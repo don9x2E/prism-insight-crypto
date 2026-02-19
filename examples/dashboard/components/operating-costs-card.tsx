@@ -189,7 +189,7 @@ export function OperatingCostsCard({ costs }: OperatingCostsCardProps) {
             <Button
               variant="default"
               className="gap-2 bg-primary hover:bg-primary/90"
-              onClick={() => window.open('https://github.com/sponsors/dragon1086', '_blank')}
+              onClick={() => window.open('https://github.com/sponsors/don9x2E', '_blank')}
             >
               <Heart className="w-4 h-4" />
               {t("costs.becomeSponsor")}

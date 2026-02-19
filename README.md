@@ -2,6 +2,12 @@
 
 Crypto-only fork of Prism Insight focused on hourly paper trading and dashboard monitoring.
 
+## Attribution & Sponsorship
+- This repository is a fork of the original project: `https://github.com/dragon1086/prism-insight`
+- Original project credits and license must be preserved.
+- Sponsorship in this fork is independent from the original project.
+- If a page mentions sponsors/support links, they refer to this fork unless explicitly marked as "original project".
+
 ## Scope
 - Crypto candidate selection: `crypto/crypto_trigger_batch.py`
 - Crypto tracking + paper execution: `crypto/crypto_tracking_agent.py`
