@@ -9,15 +9,19 @@ interface BenchmarkPoint {
   date: string
   btc_price: number
   btc_return_pct: number
+  universe_return_pct?: number
   algorithm_equity: number
   algorithm_return_pct: number
   benchmark_equity: number
+  universe_benchmark_equity?: number
 }
 
 interface BenchmarkSummary {
   algorithm_return_pct: number
   btc_return_pct: number
   alpha_pct: number
+  universe_return_pct?: number
+  universe_alpha_pct?: number
   total_trades: number
   win_rate: number
   open_positions: number
@@ -163,7 +167,7 @@ export function CryptoBenchmarkPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -191,12 +195,36 @@ export function CryptoBenchmarkPage() {
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Alpha
+              {language === "ko" ? "Universe EW Return" : "Universe EW Return"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className={`text-2xl font-bold ${(data.summary.universe_return_pct ?? 0) >= 0 ? "text-violet-600 dark:text-violet-400" : "text-destructive"}`}>
+              {formatPct(data.summary.universe_return_pct ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              BTC Alpha
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className={`text-2xl font-bold ${data.summary.alpha_pct >= 0 ? "text-amber-600 dark:text-amber-400" : "text-destructive"}`}>
               {formatPct(data.summary.alpha_pct)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Universe Alpha
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className={`text-2xl font-bold ${(data.summary.universe_alpha_pct ?? 0) >= 0 ? "text-amber-600 dark:text-amber-400" : "text-destructive"}`}>
+              {formatPct(data.summary.universe_alpha_pct ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -216,7 +244,7 @@ export function CryptoBenchmarkPage() {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle>
-            {language === "ko" ? "BTC 시세 vs 알고리즘 수익률" : "BTC Price vs Algorithm Return"}
+            {language === "ko" ? "BTC/Universe 벤치마크 vs 알고리즘 수익률" : "BTC/Universe Benchmark vs Algorithm Return"}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {language === "ko"
@@ -272,6 +300,7 @@ export function CryptoBenchmarkPage() {
                     if (name === "btc_price") return [formatUsd(value), "BTC Price"]
                     if (name === "algorithm_return_pct") return [formatPct(value), language === "ko" ? "알고리즘 수익률" : "Algorithm Return"]
                     if (name === "btc_return_pct") return [formatPct(value), "BTC Return"]
+                    if (name === "universe_return_pct") return [formatPct(value), "Universe EW Return"]
                     if (name === "algorithm_equity") return [formatUsd(value), language === "ko" ? "알고리즘 평가금액" : "Algorithm Equity"]
                     return [value, name]
                   }}
@@ -302,6 +331,16 @@ export function CryptoBenchmarkPage() {
                   name="BTC Return"
                   stroke="#22c55e"
                   strokeDasharray="7 5"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="universe_return_pct"
+                  name="Universe EW Return"
+                  stroke="#8b5cf6"
+                  strokeDasharray="3 4"
                   strokeWidth={2}
                   dot={false}
                 />

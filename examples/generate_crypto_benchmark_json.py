@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate BTC benchmark data for the dashboard.
+Generate BTC and universe equal-weight benchmark data for the dashboard.
 
 Output:
   examples/dashboard/public/crypto_benchmark_data.json
@@ -24,6 +24,44 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DEFAULT_DB_PATH = PROJECT_ROOT / "stock_tracking_db.sqlite"
 DEFAULT_OUTPUT_PATH = SCRIPT_DIR / "dashboard" / "public" / "crypto_benchmark_data.json"
+
+DEFAULT_UNIVERSE_SYMBOLS = [
+    "BTC-USD",
+    "ETH-USD",
+    "SOL-USD",
+    "BNB-USD",
+    "XRP-USD",
+    "ADA-USD",
+    "DOGE-USD",
+    "AVAX-USD",
+    "LINK-USD",
+    "DOT-USD",
+    "MATIC-USD",
+    "UNI-USD",
+    "LTC-USD",
+    "BCH-USD",
+    "ATOM-USD",
+    "NEAR-USD",
+]
+
+COINGECKO_ID_BY_SYMBOL = {
+    "BTC-USD": "bitcoin",
+    "ETH-USD": "ethereum",
+    "SOL-USD": "solana",
+    "BNB-USD": "binancecoin",
+    "XRP-USD": "ripple",
+    "ADA-USD": "cardano",
+    "DOGE-USD": "dogecoin",
+    "AVAX-USD": "avalanche-2",
+    "LINK-USD": "chainlink",
+    "DOT-USD": "polkadot",
+    "MATIC-USD": "matic-network",
+    "UNI-USD": "uniswap",
+    "LTC-USD": "litecoin",
+    "BCH-USD": "bitcoin-cash",
+    "ATOM-USD": "cosmos",
+    "NEAR-USD": "near",
+}
 
 
 def _safe_float(v, default=0.0) -> float:
@@ -403,6 +441,91 @@ def fetch_btc_daily(days: int) -> List[Tuple[str, float]]:
     return sorted(dedup.items(), key=lambda x: x[0])
 
 
+def fetch_symbol_daily_from_coingecko(coin_id: str, days: int) -> List[Tuple[str, float]]:
+    query = urllib.parse.urlencode({
+        "vs_currency": "usd",
+        "days": str(days),
+        "interval": "daily",
+    })
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart?{query}"
+    req = urllib.request.Request(url, headers={"User-Agent": "prism-insight/crypto-benchmark"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        payload = json.loads(resp.read().decode("utf-8"))
+
+    prices = payload.get("prices", [])
+    rows: List[Tuple[str, float]] = []
+    for item in prices:
+        if not isinstance(item, list) or len(item) < 2:
+            continue
+        ts_ms = int(item[0])
+        price = _safe_float(item[1])
+        dt = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc).date().isoformat()
+        rows.append((dt, price))
+    dedup = {}
+    for d, p in rows:
+        dedup[d] = p
+    return sorted(dedup.items(), key=lambda x: x[0])
+
+
+def build_universe_equal_weight_series(
+    period_days: int,
+    date_axis: List[str],
+    symbols: List[str] | None = None,
+) -> List[Tuple[str, float]]:
+    if not date_axis:
+        return []
+    universe = symbols or DEFAULT_UNIVERSE_SYMBOLS
+
+    symbol_daily: Dict[str, Dict[str, float]] = {}
+    for symbol in universe:
+        coin_id = COINGECKO_ID_BY_SYMBOL.get(symbol)
+        if not coin_id:
+            continue
+        try:
+            rows = fetch_symbol_daily_from_coingecko(coin_id, period_days)
+            if not rows:
+                continue
+            symbol_daily[symbol] = {d: _safe_float(p) for d, p in rows if _safe_float(p) > 0}
+        except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
+            continue
+
+    if not symbol_daily:
+        return []
+
+    axis_sorted = sorted(date_axis)
+    first_date = axis_sorted[0]
+
+    baselines: Dict[str, float] = {}
+    for symbol, by_date in symbol_daily.items():
+        baseline = by_date.get(first_date)
+        if not baseline or baseline <= 0:
+            continue
+        baselines[symbol] = baseline
+
+    if not baselines:
+        return []
+
+    last_price: Dict[str, float] = {}
+    out: List[Tuple[str, float]] = []
+    for d in axis_sorted:
+        returns: List[float] = []
+        for symbol, baseline in baselines.items():
+            cur = symbol_daily.get(symbol, {}).get(d)
+            if cur and cur > 0:
+                last_price[symbol] = cur
+            cur_price = last_price.get(symbol)
+            if not cur_price or baseline <= 0:
+                continue
+            returns.append((cur_price / baseline - 1.0) * 100.0)
+        if returns:
+            out.append((d, sum(returns) / len(returns)))
+        elif out:
+            out.append((d, out[-1][1]))
+        else:
+            out.append((d, 0.0))
+    return out
+
+
 def fetch_btc_daily_since(start_date: str) -> List[Tuple[str, float]]:
     start = datetime.fromisoformat(start_date).date()
     today = datetime.now().date()
@@ -438,6 +561,7 @@ def fallback_btc_daily(conn: sqlite3.Connection, days: int) -> List[Tuple[str, f
 
 def build_output(
     btc_daily: List[Tuple[str, float]],
+    universe_ew_daily: List[Tuple[str, float]],
     pnl_by_day: Dict[str, float],
     initial_capital: float,
     period_days: int,
@@ -454,6 +578,7 @@ def build_output(
         btc_daily = [(today, 0.0)]
 
     baseline = _safe_float(btc_daily[0][1], 0.0)
+    universe_by_date = {d: _safe_float(v) for d, v in universe_ew_daily}
     realized_pnl = 0.0
     points: List[Dict] = []
 
@@ -466,19 +591,25 @@ def build_output(
         algo_return = ((algo_equity - initial_capital) / initial_capital) * 100.0 if initial_capital > 0 else 0.0
         btc_return = ((btc_price - baseline) / baseline) * 100.0 if baseline > 0 else 0.0
         benchmark_equity = initial_capital * (1.0 + (btc_return / 100.0))
+        universe_return = _safe_float(universe_by_date.get(date_str), 0.0)
+        universe_benchmark_equity = initial_capital * (1.0 + (universe_return / 100.0))
 
         points.append({
             "date": date_str,
             "btc_price": round(btc_price, 6),
             "btc_return_pct": round(btc_return, 4),
+            "universe_return_pct": round(universe_return, 4),
             "algorithm_equity": round(algo_equity, 6),
             "algorithm_return_pct": round(algo_return, 4),
             "benchmark_equity": round(benchmark_equity, 6),
+            "universe_benchmark_equity": round(universe_benchmark_equity, 6),
         })
 
     algo_final = points[-1]["algorithm_return_pct"]
     btc_final = points[-1]["btc_return_pct"]
+    universe_final = points[-1]["universe_return_pct"]
     alpha = algo_final - btc_final
+    universe_alpha = algo_final - universe_final
 
     return {
         "generated_at": datetime.now().isoformat(),
@@ -488,6 +619,8 @@ def build_output(
             "algorithm_return_pct": round(algo_final, 4),
             "btc_return_pct": round(btc_final, 4),
             "alpha_pct": round(alpha, 4),
+            "universe_return_pct": round(universe_final, 4),
+            "universe_alpha_pct": round(universe_alpha, 4),
             "total_trades": trade_count,
             "win_rate": round(win_rate, 2),
             "open_positions": open_positions,
@@ -536,9 +669,12 @@ def main():
             else:
                 period_days = max(1, (datetime.now().date() - datetime.fromisoformat(start_date).date()).days + 1)
             btc_daily = fallback_btc_daily(conn, period_days)
+        date_axis = [d for d, _ in btc_daily]
+        universe_ew_daily = build_universe_equal_weight_series(period_days=period_days, date_axis=date_axis)
 
         data = build_output(
             btc_daily=btc_daily,
+            universe_ew_daily=universe_ew_daily,
             pnl_by_day=pnl_by_day,
             initial_capital=args.initial_capital,
             period_days=period_days,

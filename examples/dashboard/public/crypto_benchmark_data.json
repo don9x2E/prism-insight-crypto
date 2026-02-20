@@ -1,31 +1,37 @@
 {
-  "generated_at": "2026-02-19T23:26:21.731960",
-  "period_days": 4,
+  "generated_at": "2026-02-21T00:30:49.116538",
+  "period_days": 6,
   "initial_capital": 1000.0,
   "summary": {
-    "algorithm_return_pct": -2.199,
+    "algorithm_return_pct": -1.8109,
     "btc_return_pct": -3.6235,
-    "alpha_pct": 1.4245,
+    "alpha_pct": 1.8126,
+    "universe_return_pct": 0.0,
+    "universe_alpha_pct": -1.8109,
     "total_trades": 8,
     "win_rate": 12.5,
-    "open_positions": 1
+    "open_positions": 5
   },
   "points": [
     {
       "date": "2026-02-16",
       "btc_price": 68638.903863,
       "btc_return_pct": 0.0,
+      "universe_return_pct": 0.0,
       "algorithm_equity": 1000.0,
       "algorithm_return_pct": 0.0,
-      "benchmark_equity": 1000.0
+      "benchmark_equity": 1000.0,
+      "universe_benchmark_equity": 1000.0
     },
     {
       "date": "2026-02-19",
       "btc_price": 66151.766193,
       "btc_return_pct": -3.6235,
-      "algorithm_equity": 978.009772,
-      "algorithm_return_pct": -2.199,
-      "benchmark_equity": 963.764898
+      "universe_return_pct": 0.0,
+      "algorithm_equity": 981.890513,
+      "algorithm_return_pct": -1.8109,
+      "benchmark_equity": 963.764898,
+      "universe_benchmark_equity": 1000.0
     }
   ],
   "holdings": [
@@ -34,15 +40,119 @@
       "buy_date": "2026-02-19 22:36:02",
       "quantity": 0.00151091,
       "buy_price": 66185.22451172,
-      "current_price": 65898.09375,
+      "current_price": 66819.671875,
       "notional_usd": 100.0,
-      "market_value_usd": 99.566171,
-      "unrealized_pnl_usd": -0.433829,
-      "profit_rate_pct": -0.4338,
-      "weight_pct": 100.0
+      "market_value_usd": 100.958594,
+      "unrealized_pnl_usd": 0.958594,
+      "profit_rate_pct": 0.9586,
+      "weight_pct": 20.0535
+    },
+    {
+      "symbol": "ATOM-USD",
+      "buy_date": "2026-02-20 22:01:10",
+      "quantity": 42.68039433,
+      "buy_price": 2.34299616,
+      "current_price": 2.37079597,
+      "notional_usd": 100.0,
+      "market_value_usd": 101.186507,
+      "unrealized_pnl_usd": 1.186507,
+      "profit_rate_pct": 1.1865,
+      "weight_pct": 20.0987
+    },
+    {
+      "symbol": "NEAR-USD",
+      "buy_date": "2026-02-20 22:01:10",
+      "quantity": 97.6996599,
+      "buy_price": 1.02354502,
+      "current_price": 1.03686965,
+      "notional_usd": 100.0,
+      "market_value_usd": 101.301812,
+      "unrealized_pnl_usd": 1.301812,
+      "profit_rate_pct": 1.3018,
+      "weight_pct": 20.1216
+    },
+    {
+      "symbol": "DOT-USD",
+      "buy_date": "2026-02-21 00:20:14",
+      "quantity": 75.70176673,
+      "buy_price": 1.32097313,
+      "current_price": 1.32097313,
+      "notional_usd": 100.0,
+      "market_value_usd": 100.0,
+      "unrealized_pnl_usd": 0.0,
+      "profit_rate_pct": 0.0,
+      "weight_pct": 19.8631
+    },
+    {
+      "symbol": "ADA-USD",
+      "buy_date": "2026-02-21 00:20:14",
+      "quantity": 357.18860381,
+      "buy_price": 0.27996414,
+      "current_price": 0.27996414,
+      "notional_usd": 100.0,
+      "market_value_usd": 100.0,
+      "unrealized_pnl_usd": 0.0,
+      "profit_rate_pct": 0.0,
+      "weight_pct": 19.8631
     }
   ],
   "order_executions": [
+    {
+      "created_at": "2026-02-21 00:20:14",
+      "symbol": "ADA-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 0.27996414,
+      "quantity": 357.18860381,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-21 00:20:14",
+      "symbol": "DOT-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 1.32097313,
+      "quantity": 75.70176673,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-20 22:01:10",
+      "symbol": "NEAR-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 1.02354502,
+      "quantity": 97.6996599,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
+    {
+      "created_at": "2026-02-20 22:01:10",
+      "symbol": "ATOM-USD",
+      "side": "buy",
+      "status": "filled",
+      "executed_price": 2.34299616,
+      "quantity": 42.68039433,
+      "quote_amount": 100.0,
+      "fee_amount": 0.1,
+      "order_type": "market",
+      "mode": "paper",
+      "realized_pnl_pct": null,
+      "exit_type": null
+    },
     {
       "created_at": "2026-02-19 22:36:02",
       "symbol": "BTC-USD",
@@ -298,6 +408,60 @@
   ],
   "recent_cycles": [
     {
+      "started_at": "2026-02-21 00:19:39",
+      "ended_at": "2026-02-21 00:20:17",
+      "status": "success",
+      "entry_count": 2,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-20 23:00:06",
+      "ended_at": "2026-02-20 23:00:51",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-20 22:00:06",
+      "ended_at": "2026-02-20 22:01:14",
+      "status": "success",
+      "entry_count": 2,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-20 00:26:13",
+      "ended_at": "2026-02-20 00:26:45",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-20 00:00:05",
+      "ended_at": "2026-02-20 00:00:41",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
+      "started_at": "2026-02-19 23:36:19",
+      "ended_at": "2026-02-19 23:36:57",
+      "status": "success",
+      "entry_count": 0,
+      "no_entry_count": 0,
+      "sold_count": 0,
+      "error": null
+    },
+    {
       "started_at": "2026-02-19 23:00:05",
       "ended_at": "2026-02-19 23:00:40",
       "status": "success",
@@ -350,96 +514,6 @@
       "no_entry_count": 0,
       "sold_count": 1,
       "error": null
-    },
-    {
-      "started_at": "2026-02-17 04:13:31",
-      "ended_at": "2026-02-17 04:14:28",
-      "status": "success",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": null
-    },
-    {
-      "started_at": "2026-02-17 00:12:42",
-      "ended_at": "2026-02-17 00:13:20",
-      "status": "success",
-      "entry_count": 1,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": null
-    },
-    {
-      "started_at": "2026-02-16 22:29:49",
-      "ended_at": "2026-02-16 22:30:36",
-      "status": "success",
-      "entry_count": 1,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": null
-    },
-    {
-      "started_at": "2026-02-16 21:31:46",
-      "ended_at": "2026-02-16 21:32:05",
-      "status": "success",
-      "entry_count": 1,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": null
-    },
-    {
-      "started_at": "2026-02-16 21:18:51",
-      "ended_at": "2026-02-16 21:19:08",
-      "status": "success",
-      "entry_count": 1,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": null
-    },
-    {
-      "started_at": "2026-02-16 21:14:27",
-      "ended_at": "2026-02-16 21:14:48",
-      "status": "failed",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": "crypto_tracking_agent failed with exit code 1"
-    },
-    {
-      "started_at": "2026-02-16 21:13:43",
-      "ended_at": "2026-02-16 21:13:46",
-      "status": "failed",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": "crypto_trigger_batch failed with exit code 1"
-    },
-    {
-      "started_at": "2026-02-16 21:13:13",
-      "ended_at": "2026-02-16 21:13:13",
-      "status": "aborted",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": "Superseded by a later cycle"
-    },
-    {
-      "started_at": "2026-02-16 21:12:07",
-      "ended_at": "2026-02-16 21:12:07",
-      "status": "aborted",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": "Superseded by a later cycle"
-    },
-    {
-      "started_at": "2026-02-16 21:03:23",
-      "ended_at": "2026-02-16 21:03:23",
-      "status": "aborted",
-      "entry_count": 0,
-      "no_entry_count": 0,
-      "sold_count": 0,
-      "error": "Superseded by a later cycle"
     }
   ]
 }
