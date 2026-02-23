@@ -31,10 +31,29 @@ python -m venv .venv
 python .\examples\generate_crypto_benchmark_json.py --db-path .\stock_tracking_db.sqlite --output-path .\examples\dashboard\public\crypto_benchmark_data.json --initial-capital 1000
 ```
 
+## 빠른 시작 (Ubuntu)
+```bash
+# 저장소 클론 후
+cd prism-insight-crypto
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 수동 1회 사이클 실행
+python -m crypto.crypto_trigger_batch --interval 1h --period 14d --max-positions 3 --fallback-max-entries 1 --output crypto_candidates.json
+python -m crypto.crypto_tracking_agent crypto_candidates.json --db-path stock_tracking_db.sqlite --language ko --execute-trades --trade-mode paper --quote-amount 100
+python examples/generate_crypto_benchmark_json.py --db-path stock_tracking_db.sqlite --output-path examples/dashboard/public/crypto_benchmark_data.json --initial-capital 1000
+```
+
 ## 스케줄러
+Windows:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\register_crypto_hourly_task.ps1
 schtasks /Run /TN PrismInsightCryptoPaperHourly
+```
+Ubuntu:
+```bash
+bash scripts/crypto_hourly_paper.sh
 ```
 
 ## 대시보드
@@ -48,3 +67,4 @@ npm run dev
 ## 참고
 - 본 포크는 KR/US 주식 파이프라인 및 관련 대시보드 생성기를 제거했습니다.
 - 페이퍼 모드 시세 데이터 소스는 Yahoo Finance(`yfinance`)입니다.
+- Ubuntu 운영 시 로그는 기본적으로 `/data/Prism_BackUp/logs/crypto_scheduler_YYYYMMDD.log`에 저장됩니다.

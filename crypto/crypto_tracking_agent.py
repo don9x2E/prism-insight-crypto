@@ -118,17 +118,22 @@ class CryptoTrackingAgent:
     """Phase 2 crypto decision and persistence agent."""
 
     MAX_SLOTS = 10
+    ROTATION_MIN_SCORE_DELTA = 0.08
+    ROTATION_LOSS_PRIORITY_PCT = -2.0
+    ROTATION_MAX_PER_CYCLE = 1
 
     def __init__(
         self,
         db_path: str = "stock_tracking_db.sqlite",
         language: str = "ko",
+        timeframe: str = "1h",
         execute_trades: bool = False,
         trade_mode: str = "paper",
         quote_amount: float = 100.0,
     ):
         self.db_path = db_path
         self.language = language
+        self.timeframe = timeframe
         self.max_slots = self.MAX_SLOTS
         self.execute_trades = execute_trades
         self.trade_mode = trade_mode
@@ -317,7 +322,7 @@ class CryptoTrackingAgent:
                 _safe_float(scenario.get("stop_loss"), 0.0),
                 _safe_float(scenario.get("risk_reward_ratio"), 0.0),
                 trigger_type,
-                "1h",
+                self.timeframe,
                 scenario.get("theme", classify_symbol_theme(symbol)),
                 json.dumps(scenario, ensure_ascii=False),
             ),
@@ -337,6 +342,13 @@ class CryptoTrackingAgent:
         exec_price = _safe_float((execution or {}).get("executed_price"), fallback_price)
         exec_qty = _safe_float((execution or {}).get("quantity"), 0.0)
         exec_notional = _safe_float((execution or {}).get("quote_amount"), 0.0)
+        # Persist phase1 scoring context to support slot rotation decisions.
+        scenario_with_phase1 = dict(scenario)
+        scenario_with_phase1.setdefault("phase1_final_score", _safe_float(candidate.get("final_score"), 0.0))
+        scenario_with_phase1.setdefault("phase1_composite_score", _safe_float(candidate.get("composite_score"), 0.0))
+        scenario_with_phase1.setdefault("phase1_risk_reward_ratio", _safe_float(candidate.get("risk_reward_ratio"), 0.0))
+        scenario_with_phase1.setdefault("phase1_volume_ratio_20", _safe_float(candidate.get("volume_ratio_20"), 0.0))
+
         asset_name = symbol.split("-")[0].upper()
         self.cursor.execute(
             """
@@ -354,11 +366,11 @@ class CryptoTrackingAgent:
                 exec_notional if exec_notional > 0 else None,
                 exec_price if exec_price > 0 else fallback_price,
                 now,
-                json.dumps(scenario, ensure_ascii=False),
+                json.dumps(scenario_with_phase1, ensure_ascii=False),
                 _safe_float(scenario.get("target_price"), 0.0),
                 _safe_float(scenario.get("stop_loss"), 0.0),
                 trigger_type,
-                "1h",
+                self.timeframe,
                 scenario.get("theme", "Major"),
             ),
         )
@@ -570,6 +582,100 @@ class CryptoTrackingAgent:
                 self.conn.commit()
         return sold_count
 
+    def _holding_final_score(self, holding: Dict[str, Any]) -> float:
+        scenario = _parse_scenario_field(holding.get("scenario"))
+        score = _safe_float(scenario.get("phase1_final_score"), -1.0)
+        if score < 0:
+            score = _safe_float(scenario.get("final_score"), -1.0)
+        if score < 0:
+            score = _safe_float(holding.get("risk_reward_ratio"), 0.0) / 10.0
+        return score
+
+    async def _try_rotation_entry(
+        self,
+        symbol: str,
+        trigger_type: str,
+        candidate: Dict[str, Any],
+        scenario: Dict[str, Any],
+        buy_score: int,
+        min_score: int,
+    ) -> Tuple[bool, str, int]:
+        """Replace weakest holding with stronger new candidate when slots are full."""
+        new_final_score = _safe_float(candidate.get("final_score"), 0.0)
+        self.cursor.execute(
+            """
+            SELECT symbol, asset_name, buy_price, buy_date, quantity, notional_usd, current_price,
+                   scenario, target_price, stop_loss, trigger_type, timeframe, theme
+            FROM crypto_holdings
+            """
+        )
+        holdings = [dict(r) for r in self.cursor.fetchall()]
+        if not holdings:
+            return False, "no holdings for rotation", 0
+
+        ranked = []
+        for h in holdings:
+            h_score = self._holding_final_score(h)
+            live_price = self._get_live_price(h["symbol"], _safe_float(h.get("current_price"), 0.0))
+            buy_price = _safe_float(h.get("buy_price"), 0.0)
+            profit_rate = ((live_price - buy_price) / buy_price * 100.0) if buy_price > 0 else 0.0
+            is_loss_priority = profit_rate <= self.ROTATION_LOSS_PRIORITY_PCT
+            ranked.append((h, h_score, profit_rate, is_loss_priority))
+
+        eligible = [
+            x for x in ranked
+            if new_final_score >= (x[1] + self.ROTATION_MIN_SCORE_DELTA)
+        ]
+        if not eligible:
+            weakest = min(ranked, key=lambda x: x[1])
+            return False, (
+                f"rotation blocked: new_final={new_final_score:.3f} "
+                f"< weakest+delta ({weakest[1]:.3f}+{self.ROTATION_MIN_SCORE_DELTA:.2f})"
+            ), 0
+
+        # Prefer replacing deeper losers first; otherwise replace the weakest score.
+        eligible.sort(key=lambda x: (not x[3], x[1], x[2]))
+        target_holding, target_score, target_profit, _ = eligible[0]
+        sell_reason = (
+            f"rotation replace: {target_holding['symbol']} "
+            f"(score={target_score:.3f}, pnl={target_profit:.2f}%) "
+            f"-> {symbol} (score={new_final_score:.3f})"
+        )
+
+        sold = await self._sell_holding(target_holding, sell_reason)
+        if not sold:
+            return False, f"rotation sell failed: {target_holding['symbol']}", 0
+
+        execution = None
+        if self.execute_trades:
+            if self.trade_mode != "paper":
+                return False, f"unsupported trade_mode={self.trade_mode}", 1
+            if not self.paper_trader:
+                return False, "paper trader not initialized", 1
+            execution = self.paper_trader.buy(
+                symbol=symbol,
+                quote_amount=self.quote_amount,
+                limit_price=None,
+                metadata={"trigger_type": trigger_type, "rotation": True},
+            )
+            if not execution.get("success"):
+                return False, f"paper buy failed after rotation: {execution.get('message', 'unknown')}", 1
+
+        await self._save_holding(symbol, trigger_type, candidate, scenario, execution=execution)
+        if execution and execution.get("success"):
+            logger.info(
+                "ROTATION_ENTRY+TRADE %s (%s) score=%s/%s qty=%.8f @ %.6f",
+                symbol,
+                trigger_type,
+                buy_score,
+                min_score,
+                _safe_float(execution.get("quantity"), 0.0),
+                _safe_float(execution.get("executed_price"), 0.0),
+            )
+        else:
+            logger.info("ROTATION_ENTRY %s (%s) score=%s/%s", symbol, trigger_type, buy_score, min_score)
+        return True, "rotated", 1
+
     async def process_candidates_file(self, candidates_json_path: str) -> Tuple[int, int, int]:
         """Process Phase1 output json and store decisions.
 
@@ -582,6 +688,7 @@ class CryptoTrackingAgent:
 
         entry_count = 0
         no_entry_count = 0
+        rotations_done = 0
 
         for trigger_type, items in data.items():
             if trigger_type == "metadata":
@@ -589,6 +696,7 @@ class CryptoTrackingAgent:
             if not isinstance(items, list):
                 continue
 
+            trigger_holdings_skipped = 0
             for item in items:
                 symbol = item.get("symbol")
                 if not symbol:
@@ -598,6 +706,7 @@ class CryptoTrackingAgent:
 
                 if is_crypto_symbol_in_holdings(self.cursor, symbol):
                     logger.info("Skip already-held symbol: %s", symbol)
+                    trigger_holdings_skipped += 1
                     continue
 
                 scenario = await self.analyze_candidate(symbol, trigger_type, item)
@@ -605,14 +714,36 @@ class CryptoTrackingAgent:
                 min_score = int(_safe_float(scenario.get("min_score"), 6))
                 decision = str(scenario.get("decision", "no_entry")).lower()
 
-                if get_crypto_holdings_count(self.cursor) >= self.max_slots:
-                    decision = "no_entry"
-                    reason = f"max slots reached ({self.max_slots})"
-                    await self._save_watchlist(symbol, trigger_type, item, scenario, reason)
-                    no_entry_count += 1
-                    continue
-
                 if decision == "entry" and buy_score >= min_score:
+                    if get_crypto_holdings_count(self.cursor) >= self.max_slots:
+                        if rotations_done < self.ROTATION_MAX_PER_CYCLE:
+                            rotated, reason, rotated_sold_count = await self._try_rotation_entry(
+                                symbol=symbol,
+                                trigger_type=trigger_type,
+                                candidate=item,
+                                scenario=scenario,
+                                buy_score=buy_score,
+                                min_score=min_score,
+                            )
+                            sold_count += rotated_sold_count
+                            if rotated:
+                                entry_count += 1
+                                rotations_done += 1
+                                continue
+                            await self._save_watchlist(symbol, trigger_type, item, scenario, reason)
+                            no_entry_count += 1
+                            logger.info("NO_ENTRY %s (%s): %s", symbol, trigger_type, reason)
+                            continue
+
+                        reason = (
+                            f"max slots reached ({self.max_slots}), "
+                            f"rotation limit reached ({self.ROTATION_MAX_PER_CYCLE}/cycle)"
+                        )
+                        await self._save_watchlist(symbol, trigger_type, item, scenario, reason)
+                        no_entry_count += 1
+                        logger.info("NO_ENTRY %s (%s): %s", symbol, trigger_type, reason)
+                        continue
+
                     execution = None
                     if self.execute_trades:
                         if self.trade_mode != "paper":
@@ -666,6 +797,14 @@ class CryptoTrackingAgent:
                     no_entry_count += 1
                     logger.info("NO_ENTRY %s (%s): %s", symbol, trigger_type, reason)
 
+            if trigger_holdings_skipped and trigger_holdings_skipped == len(items):
+                logger.info(
+                    "All candidates skipped for %s: already in holdings (%d/%d)",
+                    trigger_type,
+                    trigger_holdings_skipped,
+                    len(items),
+                )
+
         return entry_count, no_entry_count, sold_count
 
 
@@ -691,6 +830,7 @@ if __name__ == "__main__":
     parser.add_argument("candidates_json", help="Path to phase1 candidate json file")
     parser.add_argument("--db-path", default="stock_tracking_db.sqlite", help="SQLite DB path")
     parser.add_argument("--language", default="ko", help="ko or en")
+    parser.add_argument("--timeframe", default="1h", help="Signal timeframe label (e.g. 1h,2h,4h)")
     parser.add_argument("--execute-trades", action="store_true", help="Execute paper trades on entry")
     parser.add_argument("--trade-mode", default="paper", help="paper or real (real not implemented)")
     parser.add_argument("--quote-amount", type=float, default=100.0, help="Quote amount per buy order in USD")
@@ -700,6 +840,7 @@ if __name__ == "__main__":
         agent = CryptoTrackingAgent(
             db_path=args.db_path,
             language=args.language,
+            timeframe=args.timeframe,
             execute_trades=args.execute_trades,
             trade_mode=args.trade_mode,
             quote_amount=args.quote_amount,
@@ -718,5 +859,3 @@ if __name__ == "__main__":
             await agent.close()
 
     asyncio.run(_run())
-
-

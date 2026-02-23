@@ -46,8 +46,8 @@ DEFAULT_SYMBOLS = [
     "AVAX-USD",
     "LINK-USD",
     "DOT-USD",
-    "MATIC-USD",
-    "UNI-USD",
+    "TRX-USD",
+    "XLM-USD",
     "LTC-USD",
     "BCH-USD",
     "ATOM-USD",
@@ -196,8 +196,8 @@ def trigger_volume_momentum(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataF
 
     df = snapshot.copy()
     cond = (
-        (df["volume_ratio_20"] >= 1.8)
-        & (df["ret_1_pct"] >= 0.8)
+        (df["volume_ratio_20"] >= 1.15)
+        & (df["ret_1_pct"] >= 0.1)
         & (df["ema20_gt_ema50"])
     )
     df = df[cond]
@@ -222,8 +222,8 @@ def trigger_volatility_trend(snapshot: pd.DataFrame, top_n: int = 10) -> pd.Data
 
     df = snapshot.copy()
     cond = (
-        (df["atr_expansion"] >= 1.15)
-        & (df["ret_4_pct"] >= 1.2)
+        (df["atr_expansion"] >= 1.0)
+        & (df["ret_4_pct"] >= 0.2)
         & (df["ema20_gt_ema50"])
     )
     df = df[cond]
@@ -248,8 +248,8 @@ def trigger_range_breakout(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataFr
 
     df = snapshot.copy()
     cond = (
-        (df["breakout_pct"] >= 0.1)
-        & (df["volume_ratio_20"] >= 1.5)
+        (df["breakout_pct"] >= -0.05)
+        & (df["volume_ratio_20"] >= 1.05)
         & (df["ret_1_pct"] >= 0.0)
     )
     df = df[cond]
@@ -426,6 +426,7 @@ def _build_output(final_results: Dict[str, pd.DataFrame], metadata: Dict[str, st
 
 def run_batch(
     symbols: List[str],
+    exclude_symbols: List[str] | None = None,
     interval: str = "1h",
     period: str = "14d",
     max_positions: int = 3,
@@ -437,6 +438,11 @@ def run_batch(
     numeric_level = getattr(logging, log_level.upper(), logging.INFO)
     logger.setLevel(numeric_level)
     _handler.setLevel(numeric_level)
+
+    excluded = {s.strip().upper() for s in (exclude_symbols or []) if s and s.strip()}
+    if excluded:
+        symbols = [s for s in symbols if s.upper() not in excluded]
+        logger.info("Excluded held symbols from phase1 universe: %d", len(excluded))
 
     logger.info("Crypto trigger batch started: interval=%s period=%s symbols=%d", interval, period, len(symbols))
     snapshot = build_snapshot(symbols, period=period, interval=interval)
@@ -494,6 +500,12 @@ def _parse_symbols(raw: str) -> List[str]:
     return symbols or DEFAULT_SYMBOLS
 
 
+def _parse_optional_symbols(raw: str) -> List[str]:
+    if not raw:
+        return []
+    return [x.strip().upper() for x in raw.split(",") if x.strip()]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run crypto trigger batch.")
     parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS), help="Comma-separated symbols (e.g. BTC-USD,ETH-USD)")
@@ -501,12 +513,14 @@ if __name__ == "__main__":
     parser.add_argument("--period", default="14d", help="History period (e.g. 7d,14d,30d,60d)")
     parser.add_argument("--max-positions", type=int, default=3, help="Maximum final selections")
     parser.add_argument("--fallback-max-entries", type=int, default=DEFAULT_FALLBACK_MAX_ENTRIES, help="Max entries when strict triggers are empty")
+    parser.add_argument("--exclude-symbols", default="", help="Comma-separated symbols to exclude from phase1 universe")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
     parser.add_argument("--output", help="Optional output json file path")
     args = parser.parse_args()
 
     run_batch(
         symbols=_parse_symbols(args.symbols),
+        exclude_symbols=_parse_optional_symbols(args.exclude_symbols),
         interval=args.interval,
         period=args.period,
         max_positions=args.max_positions,
@@ -514,5 +528,3 @@ if __name__ == "__main__":
         log_level=args.log_level,
         output_file=args.output,
     )
-
-
