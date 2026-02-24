@@ -45,6 +45,16 @@ python -m crypto.crypto_tracking_agent crypto_candidates.json --db-path stock_tr
 python examples/generate_crypto_benchmark_json.py --db-path stock_tracking_db.sqlite --output-path examples/dashboard/public/crypto_benchmark_data.json --initial-capital 1000
 ```
 
+## 신규 옵션 (품질/회전 제어)
+- `crypto_trigger_batch.py`
+  - `--volume-ratio-min` (기본 `1.20`)
+  - `--ret1-min-pct` (기본 `0.15`)
+  - `--ret4-min-pct` (기본 `0.25`)
+  - `--breakout-volume-ratio-min` (기본 `1.10`)
+  - `--volatility-tightening-factor` (기본 `0.25`, 시장 변동성(ATR 확장) 높을 때 기준 자동 강화)
+- `crypto_tracking_agent.py`
+  - `--rotation-reentry-cooldown-hours` (기본 `0`, 최근 청산 종목 재진입 쿨다운)
+
 ## 스케줄러
 Windows:
 ```powershell

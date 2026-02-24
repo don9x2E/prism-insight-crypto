@@ -21,7 +21,7 @@ import logging
 import os
 import sqlite3
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -121,6 +121,7 @@ class CryptoTrackingAgent:
     ROTATION_MIN_SCORE_DELTA = 0.08
     ROTATION_LOSS_PRIORITY_PCT = -2.0
     ROTATION_MAX_PER_CYCLE = 1
+    ROTATION_REENTRY_COOLDOWN_HOURS = 0.0
 
     def __init__(
         self,
@@ -130,6 +131,7 @@ class CryptoTrackingAgent:
         execute_trades: bool = False,
         trade_mode: str = "paper",
         quote_amount: float = 100.0,
+        rotation_reentry_cooldown_hours: float = ROTATION_REENTRY_COOLDOWN_HOURS,
     ):
         self.db_path = db_path
         self.language = language
@@ -138,11 +140,13 @@ class CryptoTrackingAgent:
         self.execute_trades = execute_trades
         self.trade_mode = trade_mode
         self.quote_amount = quote_amount
+        self.rotation_reentry_cooldown_hours = max(0.0, float(rotation_reentry_cooldown_hours))
 
         self.conn: sqlite3.Connection | None = None
         self.cursor: sqlite3.Cursor | None = None
         self.trading_agent = None
         self.paper_trader: PaperCryptoTrading | None = None
+        self._cycle_exit_counts = {"stop_loss": 0, "rotation": 0, "normal": 0}
 
     async def initialize(self) -> bool:
         self.conn = sqlite3.connect(self.db_path)
@@ -155,7 +159,10 @@ class CryptoTrackingAgent:
         if self.execute_trades and self.trade_mode == "paper":
             self.paper_trader = PaperCryptoTrading(self.cursor, self.conn)
             logger.info("Paper trading adapter enabled (quote_amount=%.2f)", self.quote_amount)
-        logger.info("CryptoTrackingAgent initialized")
+        logger.info(
+            "CryptoTrackingAgent initialized (rotation_reentry_cooldown_hours=%.2f)",
+            self.rotation_reentry_cooldown_hours,
+        )
         return True
 
     async def close(self):
@@ -459,6 +466,54 @@ class CryptoTrackingAgent:
         scenario["trail_buffer_pct"] = trail_buffer * 100.0
         return scenario, effective_stop
 
+    @staticmethod
+    def _classify_exit_reason(sell_reason: str) -> str:
+        reason = (sell_reason or "").strip().lower()
+        if "rotation replace:" in reason:
+            return "rotation"
+        if "stop loss" in reason or "trailing stop" in reason or "loss guard" in reason:
+            return "stop_loss"
+        return "normal"
+
+    def _reset_cycle_exit_counts(self):
+        self._cycle_exit_counts = {"stop_loss": 0, "rotation": 0, "normal": 0}
+
+    def _count_exit(self, exit_category: str):
+        if exit_category not in self._cycle_exit_counts:
+            exit_category = "normal"
+        self._cycle_exit_counts[exit_category] = self._cycle_exit_counts.get(exit_category, 0) + 1
+
+    def _is_reentry_cooldown_active(self, symbol: str) -> Tuple[bool, str]:
+        if self.rotation_reentry_cooldown_hours <= 0:
+            return False, ""
+        self.cursor.execute(
+            """
+            SELECT sell_date
+            FROM crypto_trading_history
+            WHERE symbol = ?
+            ORDER BY sell_date DESC, id DESC
+            LIMIT 1
+            """,
+            (symbol,),
+        )
+        row = self.cursor.fetchone()
+        if not row or not row[0]:
+            return False, ""
+
+        try:
+            last_sell_dt = datetime.strptime(str(row[0]), "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return False, ""
+        cooldown_until = last_sell_dt + timedelta(hours=self.rotation_reentry_cooldown_hours)
+        now_dt = datetime.now()
+        if now_dt < cooldown_until:
+            remaining = max((cooldown_until - now_dt).total_seconds() / 3600.0, 0.0)
+            return True, (
+                f"re-entry cooldown active ({remaining:.2f}h remaining, "
+                f"window={self.rotation_reentry_cooldown_hours:.2f}h)"
+            )
+        return False, ""
+
     async def _sell_holding(self, holding: Dict[str, Any], sell_reason: str) -> bool:
         """Execute sell (paper if enabled), then archive to history and remove holding."""
         symbol = str(holding.get("symbol") or "")
@@ -473,6 +528,7 @@ class CryptoTrackingAgent:
             quantity = notional / buy_price
 
         execution_price = current_price
+        exit_category = self._classify_exit_reason(sell_reason)
         if self.execute_trades:
             if self.trade_mode != "paper" or not self.paper_trader:
                 logger.warning("Sell skipped %s: unsupported trade mode '%s'", symbol, self.trade_mode)
@@ -481,7 +537,7 @@ class CryptoTrackingAgent:
                 symbol=symbol,
                 quantity=quantity,
                 limit_price=None,
-                metadata={"reason": sell_reason},
+                metadata={"reason": sell_reason, "exit_category": exit_category},
             )
             if not sell_res.get("success"):
                 logger.warning("Paper sell failed %s: %s", symbol, sell_res.get("message", "unknown"))
@@ -525,14 +581,16 @@ class CryptoTrackingAgent:
 
         self.cursor.execute("DELETE FROM crypto_holdings WHERE symbol = ?", (symbol,))
         self.conn.commit()
+        self._count_exit(exit_category)
         logger.info(
-            "SELL %s @ %.6f (buy %.6f, pnl %.2f%%, %.1fh) reason=%s",
+            "SELL %s @ %.6f (buy %.6f, pnl %.2f%%, %.1fh) reason=%s exit_category=%s",
             symbol,
             execution_price,
             buy_price,
             profit_rate,
             holding_hours,
             sell_reason,
+            exit_category,
         )
         return True
 
@@ -633,8 +691,9 @@ class CryptoTrackingAgent:
                 f"< weakest+delta ({weakest[1]:.3f}+{self.ROTATION_MIN_SCORE_DELTA:.2f})"
             ), 0
 
-        # Prefer replacing deeper losers first; otherwise replace the weakest score.
-        eligible.sort(key=lambda x: (not x[3], x[1], x[2]))
+        # Keep score-delta gate, then prioritize deeper losers (rotation-loss threshold first),
+        # and finally weaker score among similar PnL profiles.
+        eligible.sort(key=lambda x: (x[2] >= 0.0, not x[3], x[2], x[1]))
         target_holding, target_score, target_profit, _ = eligible[0]
         sell_reason = (
             f"rotation replace: {target_holding['symbol']} "
@@ -682,6 +741,7 @@ class CryptoTrackingAgent:
         Returns:
             (entry_count, no_entry_count, sold_count)
         """
+        self._reset_cycle_exit_counts()
         sold_count = await self.update_holdings()
         with open(candidates_json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -707,6 +767,13 @@ class CryptoTrackingAgent:
                 if is_crypto_symbol_in_holdings(self.cursor, symbol):
                     logger.info("Skip already-held symbol: %s", symbol)
                     trigger_holdings_skipped += 1
+                    continue
+
+                cooldown_active, cooldown_reason = self._is_reentry_cooldown_active(symbol)
+                if cooldown_active:
+                    await self._save_watchlist(symbol, trigger_type, item, default_scenario(), cooldown_reason)
+                    no_entry_count += 1
+                    logger.info("NO_ENTRY %s (%s): %s", symbol, trigger_type, cooldown_reason)
                     continue
 
                 scenario = await self.analyze_candidate(symbol, trigger_type, item)
@@ -805,11 +872,23 @@ class CryptoTrackingAgent:
                     len(items),
                 )
 
+        logger.info(
+            "Cycle exit summary - stop_loss=%d, rotation=%d, normal=%d, total=%d",
+            self._cycle_exit_counts.get("stop_loss", 0),
+            self._cycle_exit_counts.get("rotation", 0),
+            self._cycle_exit_counts.get("normal", 0),
+            sold_count,
+        )
+
         return entry_count, no_entry_count, sold_count
 
 
-async def _amain(candidates_json_path: str, db_path: str, language: str):
-    agent = CryptoTrackingAgent(db_path=db_path, language=language)
+async def _amain(candidates_json_path: str, db_path: str, language: str, rotation_reentry_cooldown_hours: float = 0.0):
+    agent = CryptoTrackingAgent(
+        db_path=db_path,
+        language=language,
+        rotation_reentry_cooldown_hours=rotation_reentry_cooldown_hours,
+    )
     await agent.initialize()
     try:
         entry_count, no_entry_count, sold_count = await agent.process_candidates_file(candidates_json_path)
@@ -834,6 +913,12 @@ if __name__ == "__main__":
     parser.add_argument("--execute-trades", action="store_true", help="Execute paper trades on entry")
     parser.add_argument("--trade-mode", default="paper", help="paper or real (real not implemented)")
     parser.add_argument("--quote-amount", type=float, default=100.0, help="Quote amount per buy order in USD")
+    parser.add_argument(
+        "--rotation-reentry-cooldown-hours",
+        type=float,
+        default=0.0,
+        help="Optional cooldown window to block re-entry into recently sold symbols (0 disables)",
+    )
     args = parser.parse_args()
 
     async def _run():
@@ -844,6 +929,7 @@ if __name__ == "__main__":
             execute_trades=args.execute_trades,
             trade_mode=args.trade_mode,
             quote_amount=args.quote_amount,
+            rotation_reentry_cooldown_hours=max(args.rotation_reentry_cooldown_hours, 0.0),
         )
         await agent.initialize()
         try:

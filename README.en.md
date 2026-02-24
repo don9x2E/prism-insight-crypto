@@ -31,6 +31,16 @@ python -m venv .venv
 python .\examples\generate_crypto_benchmark_json.py --db-path .\stock_tracking_db.sqlite --output-path .\examples\dashboard\public\crypto_benchmark_data.json --initial-capital 1000
 ```
 
+## New Optional Flags (signal quality / rotation control)
+- `crypto_trigger_batch.py`
+  - `--volume-ratio-min` (default `1.20`)
+  - `--ret1-min-pct` (default `0.15`)
+  - `--ret4-min-pct` (default `0.25`)
+  - `--breakout-volume-ratio-min` (default `1.10`)
+  - `--volatility-tightening-factor` (default `0.25`, dynamically tightens thresholds during high ATR expansion)
+- `crypto_tracking_agent.py`
+  - `--rotation-reentry-cooldown-hours` (default `0`, blocks rapid re-entry into recently sold symbols)
+
 ## Scheduler
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\register_crypto_hourly_task.ps1

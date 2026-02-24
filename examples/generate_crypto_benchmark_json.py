@@ -73,6 +73,24 @@ def _safe_float(v, default=0.0) -> float:
         return default
 
 
+def _classify_exit_reason_from_metadata(metadata: str | None) -> str:
+    text = (metadata or "").strip().lower()
+    if not text:
+        return "normal"
+    if "exit_category" in text:
+        if "rotation" in text:
+            return "rotation"
+        if "stop_loss" in text or "stop-loss" in text:
+            return "stop_loss"
+        if "normal" in text:
+            return "normal"
+    if "rotation replace:" in text:
+        return "rotation"
+    if "stop loss" in text or "trailing stop" in text or "loss guard" in text:
+        return "stop_loss"
+    return "normal"
+
+
 def load_trade_summary(conn: sqlite3.Connection) -> Tuple[Dict[str, float], int, float]:
     cursor = conn.cursor()
     cursor.execute(
@@ -184,7 +202,8 @@ def load_order_executions(conn: sqlite3.Connection, limit: int = 200) -> List[Di
             quote_amount,
             fee_amount,
             order_type,
-            mode
+            mode,
+            metadata
         FROM crypto_order_executions
         ORDER BY created_at DESC, id DESC
         LIMIT ?
@@ -236,12 +255,14 @@ def load_order_executions(conn: sqlite3.Connection, limit: int = 200) -> List[Di
 
     items: List[Dict] = []
     for row in rows:
-        created_at, symbol, side, status, executed_price, quantity, quote_amount, fee_amount, order_type, mode = row
+        created_at, symbol, side, status, executed_price, quantity, quote_amount, fee_amount, order_type, mode, metadata = row
         side_str = str(side)
         exit_type = None
+        exit_reason_type = None
         realized_pnl_pct = None
         if side_str.lower() == "sell":
             realized_pnl_pct = _find_sell_profit_rate(str(symbol), str(created_at))
+            exit_reason_type = _classify_exit_reason_from_metadata(str(metadata) if metadata is not None else None)
             if realized_pnl_pct is not None:
                 if realized_pnl_pct > 0:
                     exit_type = "take_profit"
@@ -264,9 +285,38 @@ def load_order_executions(conn: sqlite3.Connection, limit: int = 200) -> List[Di
                 "mode": str(mode),
                 "realized_pnl_pct": None if realized_pnl_pct is None else round(_safe_float(realized_pnl_pct), 4),
                 "exit_type": exit_type,
+                "exit_reason_type": exit_reason_type,
             }
         )
     return items
+
+
+def load_exit_reason_counts(conn: sqlite3.Connection, start_date: str | None = None) -> Dict[str, int]:
+    cursor = conn.cursor()
+    if start_date:
+        cursor.execute(
+            """
+            SELECT metadata
+            FROM crypto_order_executions
+            WHERE side = 'sell' AND status = 'filled' AND DATE(created_at) >= DATE(?)
+            """,
+            (start_date,),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT metadata
+            FROM crypto_order_executions
+            WHERE side = 'sell' AND status = 'filled'
+            """
+        )
+    counts = {"stop_loss": 0, "rotation": 0, "normal": 0}
+    for (metadata,) in cursor.fetchall():
+        k = _classify_exit_reason_from_metadata(str(metadata) if metadata is not None else None)
+        if k not in counts:
+            k = "normal"
+        counts[k] += 1
+    return counts
 
 
 def load_recent_cycles(log_dir: Path, limit: int = 20, stale_minutes: int = 30) -> List[Dict]:
@@ -572,6 +622,7 @@ def build_output(
     holdings: List[Dict],
     order_executions: List[Dict],
     recent_cycles: List[Dict],
+    exit_reason_counts: Dict[str, int],
 ) -> Dict:
     if not btc_daily:
         today = datetime.now().date().isoformat()
@@ -624,6 +675,11 @@ def build_output(
             "total_trades": trade_count,
             "win_rate": round(win_rate, 2),
             "open_positions": open_positions,
+            "exit_reason_counts": {
+                "stop_loss": int(exit_reason_counts.get("stop_loss", 0)),
+                "rotation": int(exit_reason_counts.get("rotation", 0)),
+                "normal": int(exit_reason_counts.get("normal", 0)),
+            },
         },
         "points": points,
         "holdings": holdings,
@@ -652,6 +708,7 @@ def main():
         order_executions = load_order_executions(conn)
         recent_cycles = load_recent_cycles(PROJECT_ROOT / "logs")
         start_date = get_strategy_start_date(conn)
+        exit_reason_counts = load_exit_reason_counts(conn, start_date=start_date)
 
         try:
             if args.days is not None and args.days > 0:
@@ -685,6 +742,7 @@ def main():
             holdings=holdings,
             order_executions=order_executions,
             recent_cycles=recent_cycles,
+            exit_reason_counts=exit_reason_counts,
         )
 
         with output_path.open("w", encoding="utf-8") as f:

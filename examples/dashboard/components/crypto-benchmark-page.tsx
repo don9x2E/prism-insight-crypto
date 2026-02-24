@@ -25,6 +25,11 @@ interface BenchmarkSummary {
   total_trades: number
   win_rate: number
   open_positions: number
+  exit_reason_counts?: {
+    stop_loss: number
+    rotation: number
+    normal: number
+  }
 }
 
 interface BenchmarkData {
@@ -64,6 +69,7 @@ interface CryptoOrderExecution {
   mode: string
   realized_pnl_pct?: number | null
   exit_type?: "take_profit" | "stop_loss" | "breakeven" | null
+  exit_reason_type?: "stop_loss" | "rotation" | "normal" | null
 }
 
 interface CryptoCycle {
@@ -101,6 +107,14 @@ function renderExitType(o: CryptoOrderExecution, language: string): string {
   if (o.exit_type === "take_profit") return language === "ko" ? "익절" : "Take Profit"
   if (o.exit_type === "stop_loss") return language === "ko" ? "손절" : "Stop Loss"
   if (o.exit_type === "breakeven") return language === "ko" ? "본전" : "Breakeven"
+  return language === "ko" ? "미확인" : "N/A"
+}
+
+function renderExitReasonType(o: CryptoOrderExecution, language: string): string {
+  if (o.side.toLowerCase() !== "sell") return "-"
+  if (o.exit_reason_type === "stop_loss") return language === "ko" ? "손절성" : "Stop-Loss"
+  if (o.exit_reason_type === "rotation") return language === "ko" ? "로테이션" : "Rotation"
+  if (o.exit_reason_type === "normal") return language === "ko" ? "일반청산" : "Normal"
   return language === "ko" ? "미확인" : "N/A"
 }
 
@@ -164,6 +178,7 @@ export function CryptoBenchmarkPage() {
   }
 
   const hasEnoughPoints = data.points.length >= 2
+  const exitCounts = data.summary.exit_reason_counts ?? { stop_loss: 0, rotation: 0, normal: 0 }
 
   return (
     <div className="space-y-6">
@@ -237,6 +252,39 @@ export function CryptoBenchmarkPage() {
           <CardContent className="pt-0">
             <p className="text-2xl font-bold">{data.summary.total_trades}</p>
             <p className="text-sm text-muted-foreground">{formatPct(data.summary.win_rate)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {language === "ko" ? "손절성 청산 수" : "Stop-Loss Exits"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold text-destructive">{exitCounts.stop_loss}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {language === "ko" ? "로테이션 청산 수" : "Rotation Exits"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{exitCounts.rotation}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {language === "ko" ? "일반 청산 수" : "Normal Exits"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold text-muted-foreground">{exitCounts.normal}</p>
           </CardContent>
         </Card>
       </div>
@@ -468,6 +516,7 @@ export function CryptoBenchmarkPage() {
                     <th className="text-right py-2 px-3">{language === "ko" ? "주문금액" : "Amount"}</th>
                     <th className="text-right py-2 px-3">{language === "ko" ? "수수료" : "Fee"}</th>
                     <th className="text-left py-2 px-3">{language === "ko" ? "청산구분" : "Exit Type"}</th>
+                    <th className="text-left py-2 px-3">{language === "ko" ? "청산사유" : "Exit Reason"}</th>
                     <th className="text-right py-2 px-3">{language === "ko" ? "실현손익%" : "Realized PnL %"}</th>
                     <th className="text-left py-2 pl-3">{language === "ko" ? "상태" : "Status"}</th>
                   </tr>
@@ -492,6 +541,15 @@ export function CryptoBenchmarkPage() {
                             : "text-muted-foreground"
                       }`}>
                         {renderExitType(o, language)}
+                      </td>
+                      <td className={`py-2 px-3 font-semibold ${
+                        o.exit_reason_type === "stop_loss"
+                          ? "text-destructive"
+                          : o.exit_reason_type === "rotation"
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-muted-foreground"
+                      }`}>
+                        {renderExitReasonType(o, language)}
                       </td>
                       <td className={`py-2 px-3 text-right font-semibold ${
                         (o.realized_pnl_pct ?? 0) > 0

@@ -20,6 +20,7 @@ import datetime as dt
 import json
 import logging
 import time
+from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -55,6 +56,32 @@ DEFAULT_SYMBOLS = [
 ]
 
 DEFAULT_FALLBACK_MAX_ENTRIES = 1
+
+
+@dataclass(frozen=True)
+class TriggerThresholds:
+    volume_momentum_volume_ratio_min: float = 1.20
+    volume_momentum_ret_1_min_pct: float = 0.15
+    volatility_trend_ret_4_min_pct: float = 0.25
+    range_breakout_volume_ratio_min: float = 1.10
+    volatility_tightening_factor: float = 0.25
+
+
+def _effective_thresholds(snapshot: pd.DataFrame, base: TriggerThresholds) -> TriggerThresholds:
+    if snapshot.empty:
+        return base
+
+    atr_expansion_median = float(snapshot["atr_expansion"].median()) if "atr_expansion" in snapshot.columns else 1.0
+    volatility_overheat = max(0.0, atr_expansion_median - 1.0)
+    tighten = min(volatility_overheat * max(base.volatility_tightening_factor, 0.0), 0.25)
+
+    return TriggerThresholds(
+        volume_momentum_volume_ratio_min=base.volume_momentum_volume_ratio_min * (1.0 + tighten),
+        volume_momentum_ret_1_min_pct=base.volume_momentum_ret_1_min_pct * (1.0 + tighten),
+        volatility_trend_ret_4_min_pct=base.volatility_trend_ret_4_min_pct * (1.0 + tighten),
+        range_breakout_volume_ratio_min=base.range_breakout_volume_ratio_min * (1.0 + tighten),
+        volatility_tightening_factor=base.volatility_tightening_factor,
+    )
 
 
 def _ema(series: pd.Series, window: int) -> pd.Series:
@@ -189,15 +216,15 @@ def build_snapshot(symbols: List[str], period: str, interval: str) -> pd.DataFra
     return pd.DataFrame.from_records(records).set_index("symbol")
 
 
-def trigger_volume_momentum(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+def trigger_volume_momentum(snapshot: pd.DataFrame, thresholds: TriggerThresholds, top_n: int = 10) -> pd.DataFrame:
     """Trigger 1: Volume surge with short-term momentum."""
     if snapshot.empty:
         return pd.DataFrame()
 
     df = snapshot.copy()
     cond = (
-        (df["volume_ratio_20"] >= 1.15)
-        & (df["ret_1_pct"] >= 0.1)
+        (df["volume_ratio_20"] >= thresholds.volume_momentum_volume_ratio_min)
+        & (df["ret_1_pct"] >= thresholds.volume_momentum_ret_1_min_pct)
         & (df["ema20_gt_ema50"])
     )
     df = df[cond]
@@ -215,7 +242,7 @@ def trigger_volume_momentum(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataF
     return df.sort_values("composite_score", ascending=False).head(top_n)
 
 
-def trigger_volatility_trend(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+def trigger_volatility_trend(snapshot: pd.DataFrame, thresholds: TriggerThresholds, top_n: int = 10) -> pd.DataFrame:
     """Trigger 2: Volatility expansion with trend alignment."""
     if snapshot.empty:
         return pd.DataFrame()
@@ -223,7 +250,7 @@ def trigger_volatility_trend(snapshot: pd.DataFrame, top_n: int = 10) -> pd.Data
     df = snapshot.copy()
     cond = (
         (df["atr_expansion"] >= 1.0)
-        & (df["ret_4_pct"] >= 0.2)
+        & (df["ret_4_pct"] >= thresholds.volatility_trend_ret_4_min_pct)
         & (df["ema20_gt_ema50"])
     )
     df = df[cond]
@@ -241,7 +268,7 @@ def trigger_volatility_trend(snapshot: pd.DataFrame, top_n: int = 10) -> pd.Data
     return df.sort_values("composite_score", ascending=False).head(top_n)
 
 
-def trigger_range_breakout(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+def trigger_range_breakout(snapshot: pd.DataFrame, thresholds: TriggerThresholds, top_n: int = 10) -> pd.DataFrame:
     """Trigger 3: Range breakout with supporting volume."""
     if snapshot.empty:
         return pd.DataFrame()
@@ -249,7 +276,7 @@ def trigger_range_breakout(snapshot: pd.DataFrame, top_n: int = 10) -> pd.DataFr
     df = snapshot.copy()
     cond = (
         (df["breakout_pct"] >= -0.05)
-        & (df["volume_ratio_20"] >= 1.05)
+        & (df["volume_ratio_20"] >= thresholds.range_breakout_volume_ratio_min)
         & (df["ret_1_pct"] >= 0.0)
     )
     df = df[cond]
@@ -431,6 +458,7 @@ def run_batch(
     period: str = "14d",
     max_positions: int = 3,
     fallback_max_entries: int = DEFAULT_FALLBACK_MAX_ENTRIES,
+    base_thresholds: TriggerThresholds | None = None,
     log_level: str = "INFO",
     output_file: str | None = None,
 ) -> Dict:
@@ -450,10 +478,22 @@ def run_batch(
         logger.warning("No valid snapshot data.")
         return {"metadata": {"status": "empty"}}
 
+    thresholds = _effective_thresholds(snapshot, base_thresholds or TriggerThresholds())
+    logger.info(
+        "Effective thresholds: vol_ratio>=%.3f, ret1>=%.3f%%, ret4>=%.3f%%, breakout_vol_ratio>=%.3f "
+        "(tightening_factor=%.2f, atr_expansion_median=%.3f)",
+        thresholds.volume_momentum_volume_ratio_min,
+        thresholds.volume_momentum_ret_1_min_pct,
+        thresholds.volatility_trend_ret_4_min_pct,
+        thresholds.range_breakout_volume_ratio_min,
+        thresholds.volatility_tightening_factor,
+        float(snapshot["atr_expansion"].median()),
+    )
+
     triggers = {
-        "Volume Momentum": trigger_volume_momentum(snapshot, top_n=10),
-        "Volatility Trend Expansion": trigger_volatility_trend(snapshot, top_n=10),
-        "Range Breakout": trigger_range_breakout(snapshot, top_n=10),
+        "Volume Momentum": trigger_volume_momentum(snapshot, thresholds=thresholds, top_n=10),
+        "Volatility Trend Expansion": trigger_volatility_trend(snapshot, thresholds=thresholds, top_n=10),
+        "Range Breakout": trigger_range_breakout(snapshot, thresholds=thresholds, top_n=10),
     }
 
     for name, df in triggers.items():
@@ -514,6 +554,11 @@ if __name__ == "__main__":
     parser.add_argument("--max-positions", type=int, default=3, help="Maximum final selections")
     parser.add_argument("--fallback-max-entries", type=int, default=DEFAULT_FALLBACK_MAX_ENTRIES, help="Max entries when strict triggers are empty")
     parser.add_argument("--exclude-symbols", default="", help="Comma-separated symbols to exclude from phase1 universe")
+    parser.add_argument("--volume-ratio-min", type=float, default=1.20, help="Base minimum volume_ratio_20 for volume-momentum trigger")
+    parser.add_argument("--ret1-min-pct", type=float, default=0.15, help="Base minimum ret_1_pct for volume-momentum trigger")
+    parser.add_argument("--ret4-min-pct", type=float, default=0.25, help="Base minimum ret_4_pct for volatility-trend trigger")
+    parser.add_argument("--breakout-volume-ratio-min", type=float, default=1.10, help="Base minimum volume_ratio_20 for range-breakout trigger")
+    parser.add_argument("--volatility-tightening-factor", type=float, default=0.25, help="Dynamic threshold tightening factor based on median ATR expansion")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
     parser.add_argument("--output", help="Optional output json file path")
     args = parser.parse_args()
@@ -525,6 +570,13 @@ if __name__ == "__main__":
         period=args.period,
         max_positions=args.max_positions,
         fallback_max_entries=args.fallback_max_entries,
+        base_thresholds=TriggerThresholds(
+            volume_momentum_volume_ratio_min=max(args.volume_ratio_min, 0.0),
+            volume_momentum_ret_1_min_pct=max(args.ret1_min_pct, 0.0),
+            volatility_trend_ret_4_min_pct=max(args.ret4_min_pct, 0.0),
+            range_breakout_volume_ratio_min=max(args.breakout_volume_ratio_min, 0.0),
+            volatility_tightening_factor=max(args.volatility_tightening_factor, 0.0),
+        ),
         log_level=args.log_level,
         output_file=args.output,
     )
