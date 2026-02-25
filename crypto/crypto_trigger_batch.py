@@ -56,6 +56,7 @@ DEFAULT_SYMBOLS = [
 ]
 
 DEFAULT_FALLBACK_MAX_ENTRIES = 1
+SUPPORTED_YFINANCE_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "4h", "1d", "5d", "1wk", "1mo", "3mo"}
 
 
 @dataclass(frozen=True)
@@ -124,14 +125,51 @@ def _normalize_score(df: pd.DataFrame, cols: List[Tuple[str, float]]) -> pd.Seri
     return score / weight_sum
 
 
+def _resolve_fetch_interval(interval: str) -> Tuple[str, str | None]:
+    """Return (fetch_interval, resample_rule)."""
+    iv = (interval or "").strip().lower()
+    if not iv:
+        return "1h", None
+    if iv in SUPPORTED_YFINANCE_INTERVALS:
+        return iv, None
+    # yfinance does not support 2h directly; fetch 1h and aggregate.
+    if iv == "2h":
+        return "1h", "2h"
+    return "1h", None
+
+
+def _resample_ohlcv(df: pd.DataFrame, rule: str) -> pd.DataFrame:
+    if df.empty or not isinstance(df.index, pd.DatetimeIndex):
+        return df
+    out = df.sort_index().resample(rule).agg(
+        {
+            "Open": "first",
+            "High": "max",
+            "Low": "min",
+            "Close": "last",
+            "Volume": "sum",
+        }
+    )
+    return out.dropna(subset=["Open", "High", "Low", "Close"])
+
+
 def fetch_symbol_bars(symbol: str, period: str, interval: str) -> pd.DataFrame:
     """Fetch OHLCV bars and return a normalized DataFrame."""
+    fetch_interval, resample_rule = _resolve_fetch_interval(interval)
     # Retry with fallback period/interval pairs for better data stability.
-    query_plan = [
-        (period, interval),
+    raw_plan = [
+        (period, fetch_interval),
         ("30d", "1h"),
         ("60d", "1d"),
     ]
+    query_plan: List[Tuple[str, str]] = []
+    seen = set()
+    for p, i in raw_plan:
+        key = (p, i)
+        if key in seen:
+            continue
+        query_plan.append(key)
+        seen.add(key)
 
     hist = pd.DataFrame()
     last_error = None
@@ -155,6 +193,11 @@ def fetch_symbol_bars(symbol: str, period: str, interval: str) -> pd.DataFrame:
         return pd.DataFrame()
     if hist.empty:
         return pd.DataFrame()
+
+    if resample_rule:
+        hist = _resample_ohlcv(hist, resample_rule)
+        if hist.empty:
+            return pd.DataFrame()
 
     bars = hist[["Open", "High", "Low", "Close", "Volume"]].copy()
     bars.dropna(inplace=True)

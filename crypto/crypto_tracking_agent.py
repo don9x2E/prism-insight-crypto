@@ -118,9 +118,10 @@ class CryptoTrackingAgent:
     """Phase 2 crypto decision and persistence agent."""
 
     MAX_SLOTS = 10
-    ROTATION_MIN_SCORE_DELTA = 0.08
+    ROTATION_MIN_SCORE_DELTA = 0.12
     ROTATION_LOSS_PRIORITY_PCT = -2.0
     ROTATION_MAX_PER_CYCLE = 1
+    ROTATION_MIN_HOLDING_HOURS = 4.0
     ROTATION_REENTRY_COOLDOWN_HOURS = 0.0
 
     def __init__(
@@ -677,14 +678,28 @@ class CryptoTrackingAgent:
             live_price = self._get_live_price(h["symbol"], _safe_float(h.get("current_price"), 0.0))
             buy_price = _safe_float(h.get("buy_price"), 0.0)
             profit_rate = ((live_price - buy_price) / buy_price * 100.0) if buy_price > 0 else 0.0
+            buy_date = str(h.get("buy_date") or "")
+            try:
+                buy_dt = datetime.strptime(buy_date, "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                buy_dt = datetime.now()
+            holding_hours = max((datetime.now() - buy_dt).total_seconds() / 3600.0, 0.0)
             is_loss_priority = profit_rate <= self.ROTATION_LOSS_PRIORITY_PCT
-            ranked.append((h, h_score, profit_rate, is_loss_priority))
+            ranked.append((h, h_score, profit_rate, is_loss_priority, holding_hours))
 
         eligible = [
             x for x in ranked
             if new_final_score >= (x[1] + self.ROTATION_MIN_SCORE_DELTA)
+            and x[4] >= self.ROTATION_MIN_HOLDING_HOURS
         ]
         if not eligible:
+            too_fresh = [x for x in ranked if x[4] < self.ROTATION_MIN_HOLDING_HOURS]
+            if too_fresh:
+                freshest = min(too_fresh, key=lambda x: x[4])
+                return False, (
+                    f"rotation blocked: min holding {self.ROTATION_MIN_HOLDING_HOURS:.1f}h "
+                    f"(freshest {freshest[0]['symbol']}={freshest[4]:.2f}h)"
+                ), 0
             weakest = min(ranked, key=lambda x: x[1])
             return False, (
                 f"rotation blocked: new_final={new_final_score:.3f} "
@@ -694,10 +709,10 @@ class CryptoTrackingAgent:
         # Keep score-delta gate, then prioritize deeper losers (rotation-loss threshold first),
         # and finally weaker score among similar PnL profiles.
         eligible.sort(key=lambda x: (x[2] >= 0.0, not x[3], x[2], x[1]))
-        target_holding, target_score, target_profit, _ = eligible[0]
+        target_holding, target_score, target_profit, _, target_hold_hours = eligible[0]
         sell_reason = (
             f"rotation replace: {target_holding['symbol']} "
-            f"(score={target_score:.3f}, pnl={target_profit:.2f}%) "
+            f"(score={target_score:.3f}, pnl={target_profit:.2f}%, hold={target_hold_hours:.1f}h) "
             f"-> {symbol} (score={new_final_score:.3f})"
         )
 

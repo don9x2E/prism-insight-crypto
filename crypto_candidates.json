@@ -1,33 +1,73 @@
 {
-  "Fallback Momentum": [
+  "Volatility Trend Expansion": [
     {
-      "symbol": "BTC-USD",
-      "current_price": 65898.09375,
-      "volume": 2871433216.0,
-      "trade_value": 189221975264832.0,
-      "ret_1_pct": -0.8802257897954191,
-      "ret_4_pct": -1.370068682337,
-      "volume_ratio_20": 4.551878136267044,
-      "atr_pct": 0.005044255290551774,
+      "symbol": "NEAR-USD",
+      "current_price": 1.0946582555770874,
+      "volume": 2909248.0,
+      "trade_value": 3184632.3407211304,
+      "ret_1_pct": 0.30138501444063603,
+      "ret_4_pct": 6.432318331031062,
+      "volume_ratio_20": 1.0209045460874722,
+      "atr_pct": 0.011657116030179432,
+      "risk_reward_ratio": 2.5,
+      "theme": "L1",
+      "stop_loss_pct": 2.0,
+      "stop_loss_price": 1.0727650904655457,
+      "target_pct": 5.0,
+      "target_price": 1.149391168355942,
+      "agent_fit_score": 0.7929266364522461,
+      "composite_score": 0.7500015629454443,
+      "final_score": 0.8550486455165722
+    },
+    {
+      "symbol": "ETH-USD",
+      "current_price": 1992.972412109375,
+      "volume": 237905920.0,
+      "trade_value": 474139935237.5,
+      "ret_1_pct": -0.09026275948248452,
+      "ret_4_pct": 3.6648489286216,
+      "volume_ratio_20": 1.1182189356488659,
+      "atr_pct": 0.009067567128882431,
       "risk_reward_ratio": 2.5,
       "theme": "Major",
       "stop_loss_pct": 2.0,
-      "stop_loss_price": 64580.131875,
+      "stop_loss_price": 1953.1129638671875,
       "target_pct": 5.0,
-      "target_price": 69192.9984375,
-      "agent_fit_score": 1.0,
-      "composite_score": 0.7820290670424677,
-      "final_score": 0.7
+      "target_price": 2092.6210327148438,
+      "agent_fit_score": 0.8065506509908412,
+      "composite_score": 0.3790627594121149,
+      "final_score": 0.7162033493471284
+    }
+  ],
+  "Range Breakout": [
+    {
+      "symbol": "BTC-USD",
+      "current_price": 66984.515625,
+      "volume": 584712192.0,
+      "trade_value": 39166662961152.0,
+      "ret_1_pct": 0.11147215046907188,
+      "ret_4_pct": 2.4440207748008813,
+      "volume_ratio_20": 1.9491267966020813,
+      "atr_pct": 0.00662623987959904,
+      "risk_reward_ratio": 2.5,
+      "theme": "Major",
+      "stop_loss_pct": 2.0,
+      "stop_loss_price": 65644.8253125,
+      "target_pct": 5.0,
+      "target_price": 70333.74140625,
+      "agent_fit_score": 0.9228777515242914,
+      "composite_score": 0.0,
+      "final_score": 0.646014426067004
     }
   ],
   "metadata": {
-    "run_time": "2026-02-19T14:00:26.872289Z",
+    "run_time": "2026-02-25T15:20:03.362838Z",
     "market": "CRYPTO",
-    "interval": "1h",
+    "interval": "2h",
     "period": "14d",
-    "universe_size": "16",
+    "universe_size": "7",
     "selection_mode": "hybrid",
     "max_positions": "3",
-    "fallback_max_entries": "1"
+    "fallback_max_entries": "3"
   }
 }
