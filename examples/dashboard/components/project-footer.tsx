@@ -19,29 +19,7 @@ export function ProjectFooter() {
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {t("footer.description")}
-                  <br />
-                  <span className="text-xs">
-                    {t("footer.openSource")}
-                  </span>
                 </p>
-                <div className="pt-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span>GPT-4.1</span>
-                    </div>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                      <span>GPT-5.1</span>
-                    </div>
-                    <span>•</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                      <span>Claude 4.5</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* 주요 기능 */}
@@ -176,9 +154,6 @@ export function ProjectFooter() {
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">
                     Open Source
-                  </span>
-                  <span className="px-2 py-1 rounded-md bg-green-500/10 text-green-500 text-xs font-medium">
-                    MIT License
                   </span>
                 </div>
               </div>
