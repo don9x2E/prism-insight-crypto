@@ -327,6 +327,7 @@ export function CryptoBenchmarkPage() {
                   tickLine={false}
                   axisLine={false}
                   fontSize={11}
+                  domain={[(dataMin: number) => dataMin * 0.98, (dataMax: number) => dataMax * 1.02]}
                   tickFormatter={(value) => `$${Math.round(value).toLocaleString("en-US")}`}
                 />
                 <YAxis
