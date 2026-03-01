@@ -36,6 +36,7 @@ interface BenchmarkData {
   generated_at: string
   period_days: number
   initial_capital: number
+  logic_change_ts?: string
   summary: BenchmarkSummary
   points: BenchmarkPoint[]
   holdings?: CryptoHolding[]
@@ -448,6 +449,21 @@ export function CryptoBenchmarkPage() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle>{language === "ko" ? "로직 변경 타임스탬프" : "Logic Change Timestamp"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {data.logic_change_ts
+              ? new Date(data.logic_change_ts).toLocaleString(language === "ko" ? "ko-KR" : "en-US")
+              : language === "ko"
+                ? "표시할 타임스탬프가 없습니다."
+                : "No logic change timestamp available."}
+          </p>
         </CardContent>
       </Card>
 
