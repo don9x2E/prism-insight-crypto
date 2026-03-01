@@ -623,6 +623,7 @@ def build_output(
     order_executions: List[Dict],
     recent_cycles: List[Dict],
     exit_reason_counts: Dict[str, int],
+    logic_change_ts: str,
 ) -> Dict:
     if not btc_daily:
         today = datetime.now().date().isoformat()
@@ -662,10 +663,18 @@ def build_output(
     alpha = algo_final - btc_final
     universe_alpha = algo_final - universe_final
 
+    stamped_orders = [
+        {**order, "logic_change_ts": logic_change_ts} for order in order_executions
+    ]
+    stamped_cycles = [
+        {**cycle, "logic_change_ts": logic_change_ts} for cycle in recent_cycles
+    ]
+
     return {
         "generated_at": datetime.now().isoformat(),
         "period_days": period_days,
         "initial_capital": initial_capital,
+        "logic_change_ts": logic_change_ts,
         "summary": {
             "algorithm_return_pct": round(algo_final, 4),
             "btc_return_pct": round(btc_final, 4),
@@ -683,8 +692,8 @@ def build_output(
         },
         "points": points,
         "holdings": holdings,
-        "order_executions": order_executions,
-        "recent_cycles": recent_cycles,
+        "order_executions": stamped_orders,
+        "recent_cycles": stamped_cycles,
     }
 
 
@@ -729,6 +738,7 @@ def main():
         date_axis = [d for d, _ in btc_daily]
         universe_ew_daily = build_universe_equal_weight_series(period_days=period_days, date_axis=date_axis)
 
+        logic_change_ts = datetime.now().isoformat()
         data = build_output(
             btc_daily=btc_daily,
             universe_ew_daily=universe_ew_daily,
@@ -743,6 +753,7 @@ def main():
             order_executions=order_executions,
             recent_cycles=recent_cycles,
             exit_reason_counts=exit_reason_counts,
+            logic_change_ts=logic_change_ts,
         )
 
         with output_path.open("w", encoding="utf-8") as f:
