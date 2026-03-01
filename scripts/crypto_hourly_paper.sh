@@ -92,6 +92,13 @@ trigger_args=(
   --max-positions 3
   --fallback-max-entries 3
   --output crypto_candidates.json
+  --entry-min-volume-ratio 1.0
+  --entry-max-atr-pct 0.09
+  --stop-loss-atr-multiplier 1.35
+  --stop-loss-min-pct 0.02
+  --stop-loss-max-pct 0.075
+  --target-to-stop-ratio 2.2
+  --target-min-pct 0.055
 )
 if [[ -n "${exclude_symbols}" ]]; then
   trigger_args+=(--exclude-symbols "${exclude_symbols}")
@@ -108,7 +115,11 @@ run_python_and_log "crypto_tracking_agent" \
   --timeframe 2h \
   --execute-trades \
   --trade-mode paper \
-  --quote-amount 100
+  --quote-amount 100 \
+  --rotation-min-score-delta 0.16 \
+  --rotation-min-holding-hours 6 \
+  --rotation-min-candidate-rr 1.8 \
+  --rotation-min-final-score 0.5
 
 run_python_and_log "generate_crypto_benchmark_json" \
   ./examples/generate_crypto_benchmark_json.py \
