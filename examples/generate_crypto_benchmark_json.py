@@ -738,7 +738,13 @@ def main():
         date_axis = [d for d, _ in btc_daily]
         universe_ew_daily = build_universe_equal_weight_series(period_days=period_days, date_axis=date_axis)
 
-        logic_change_ts = datetime.now().isoformat()
+        logic_change_file = PROJECT_ROOT / "logic_change_ts.txt"
+        logic_change_ts = None
+        if logic_change_file.exists():
+            logic_change_ts = logic_change_file.read_text(encoding="utf-8").strip() or None
+        if not logic_change_ts:
+            logic_change_ts = datetime.now().isoformat()
+            logic_change_file.write_text(logic_change_ts, encoding="utf-8")
         data = build_output(
             btc_daily=btc_daily,
             universe_ew_daily=universe_ew_daily,
