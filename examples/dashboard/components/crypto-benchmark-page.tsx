@@ -30,6 +30,39 @@ interface BenchmarkSummary {
     rotation: number
     normal: number
   }
+  kpi?: BenchmarkKPI
+}
+
+interface BenchmarkKPI {
+  window_days: number
+  downside_capture_vs_btc?: number | null
+  downside_capture_vs_universe?: number | null
+  hit_rate_vs_btc_daily?: number | null
+  hit_rate_vs_universe_daily?: number | null
+  recent_24h: {
+    ref_ts?: string | null
+    buys: number
+    rotation_buys: number
+    sells: number
+    sell_count: number
+    win_rate: number
+    avg_profit_rate: number
+    cost_adjusted_avg_trade_pct: number
+    rotation_buy_ratio: number
+    roundtrip_cost_pct: number
+  }
+  targets: {
+    downside_capture_max: number
+    rotation_buy_ratio_max: number
+    cost_adjusted_avg_trade_pct_min: number
+  }
+  passes: {
+    downside_capture_vs_btc: boolean
+    downside_capture_vs_universe: boolean
+    rotation_buy_ratio_24h: boolean
+    cost_adjusted_avg_trade_pct_24h: boolean
+    overall: boolean
+  }
 }
 
 interface BenchmarkData {
@@ -85,6 +118,11 @@ interface CryptoCycle {
 
 function formatPct(v: number): string {
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`
+}
+
+function formatRatio(v: number | null | undefined): string {
+  if (v == null || Number.isNaN(v)) return "-"
+  return v.toFixed(2)
 }
 
 function formatPctPlain(v: number): string {
@@ -180,6 +218,7 @@ export function CryptoBenchmarkPage() {
 
   const hasEnoughPoints = data.points.length >= 2
   const exitCounts = data.summary.exit_reason_counts ?? { stop_loss: 0, rotation: 0, normal: 0 }
+  const kpi = data.summary.kpi
 
   return (
     <div className="space-y-6">
@@ -256,6 +295,90 @@ export function CryptoBenchmarkPage() {
           </CardContent>
         </Card>
       </div>
+
+      {kpi && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {language === "ko" ? "하락 방어 (BTC)" : "Downside Capture (BTC)"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className={`text-2xl font-bold ${kpi.passes.downside_capture_vs_btc ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {formatRatio(kpi.downside_capture_vs_btc)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ko" ? "목표 ≤" : "Target ≤"} {kpi.targets.downside_capture_max.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {language === "ko" ? "하락 방어 (Universe)" : "Downside Capture (Universe)"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className={`text-2xl font-bold ${kpi.passes.downside_capture_vs_universe ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {formatRatio(kpi.downside_capture_vs_universe)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ko" ? "목표 ≤" : "Target ≤"} {kpi.targets.downside_capture_max.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {language === "ko" ? "24h 회전 매수 비율" : "24h Rotation Buy Ratio"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className={`text-2xl font-bold ${kpi.passes.rotation_buy_ratio_24h ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {formatPctPlain((kpi.recent_24h.rotation_buy_ratio || 0) * 100)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ko" ? "목표 ≤" : "Target ≤"} {formatPctPlain(kpi.targets.rotation_buy_ratio_max * 100)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {language === "ko" ? "24h 비용차감 평균" : "24h Cost-Adjusted Avg"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className={`text-2xl font-bold ${kpi.passes.cost_adjusted_avg_trade_pct_24h ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {formatPct(kpi.recent_24h.cost_adjusted_avg_trade_pct || 0)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ko" ? "왕복 비용" : "Roundtrip Cost"} {formatPctPlain(kpi.recent_24h.roundtrip_cost_pct || 0)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {language === "ko" ? "KPI 종합" : "KPI Overall"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className={`text-2xl font-bold ${kpi.passes.overall ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {kpi.passes.overall ? "PASS" : "FAIL"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {language === "ko" ? `${kpi.window_days}일 평가` : `${kpi.window_days}d window`}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border/50">

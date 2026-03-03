@@ -63,6 +63,11 @@ COINGECKO_ID_BY_SYMBOL = {
     "NEAR-USD": "near",
 }
 
+KPI_TARGET_DOWNSIDE_CAPTURE = 0.9
+KPI_TARGET_ROTATION_BUY_RATIO = 0.35
+KPI_TARGET_COST_ADJUSTED_AVG_TRADE_PCT = 0.0
+KPI_ROUNDTRIP_COST_PCT = 0.3
+
 
 def _safe_float(v, default=0.0) -> float:
     try:
@@ -71,6 +76,174 @@ def _safe_float(v, default=0.0) -> float:
         return float(v)
     except (TypeError, ValueError):
         return default
+
+
+def _safe_mean(values: List[float]) -> float:
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
+
+
+def _compute_daily_return_rows(points: List[Dict]) -> List[Dict[str, float]]:
+    rows: List[Dict[str, float]] = []
+    if len(points) < 2:
+        return rows
+    for i in range(1, len(points)):
+        prev = points[i - 1]
+        cur = points[i]
+        prev_algo = _safe_float(prev.get("algorithm_equity"), 0.0)
+        prev_btc = _safe_float(prev.get("benchmark_equity"), 0.0)
+        prev_uni = _safe_float(prev.get("universe_benchmark_equity"), 0.0)
+        algo = _safe_float(cur.get("algorithm_equity"), 0.0)
+        btc = _safe_float(cur.get("benchmark_equity"), 0.0)
+        uni = _safe_float(cur.get("universe_benchmark_equity"), 0.0)
+        rows.append(
+            {
+                "date": cur.get("date"),
+                "algo": ((algo / prev_algo - 1.0) * 100.0) if prev_algo > 0 else 0.0,
+                "btc": ((btc / prev_btc - 1.0) * 100.0) if prev_btc > 0 else 0.0,
+                "uni": ((uni / prev_uni - 1.0) * 100.0) if prev_uni > 0 else 0.0,
+            }
+        )
+    return rows
+
+
+def _downside_capture(rows: List[Dict[str, float]], base_key: str) -> float | None:
+    down = [r for r in rows if _safe_float(r.get(base_key), 0.0) < 0]
+    if not down:
+        return None
+    base_loss = _safe_mean([abs(_safe_float(r.get(base_key), 0.0)) for r in down])
+    algo_loss = _safe_mean([abs(min(_safe_float(r.get("algo"), 0.0), 0.0)) for r in down])
+    if base_loss <= 0:
+        return None
+    return algo_loss / base_loss
+
+
+def _hit_rate(rows: List[Dict[str, float]], base_key: str) -> float | None:
+    if not rows:
+        return None
+    wins = sum(1 for r in rows if _safe_float(r.get("algo"), 0.0) > _safe_float(r.get(base_key), 0.0))
+    return wins / len(rows)
+
+
+def load_recent_24h_kpi_metrics(conn: sqlite3.Connection, roundtrip_cost_pct: float = KPI_ROUNDTRIP_COST_PCT) -> Dict[str, float]:
+    cur = conn.cursor()
+    cur.execute("SELECT MAX(created_at) FROM crypto_order_executions")
+    max_created = cur.fetchone()[0]
+    if not max_created:
+        return {
+            "window_ref_ts": None,
+            "window_hours": 24,
+            "buys": 0,
+            "rotation_buys": 0,
+            "sells": 0,
+            "sell_count": 0,
+            "win_rate": 0.0,
+            "avg_profit_rate": 0.0,
+            "cost_adjusted_avg_trade_pct": -roundtrip_cost_pct,
+            "rotation_buy_ratio": 0.0,
+            "roundtrip_cost_pct": roundtrip_cost_pct,
+        }
+    ref_dt = datetime.strptime(str(max_created), "%Y-%m-%d %H:%M:%S")
+    start_dt = ref_dt - timedelta(hours=24)
+    ref_ts = ref_dt.strftime("%Y-%m-%d %H:%M:%S")
+    start_ts = start_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    cur.execute(
+        """
+        SELECT
+            SUM(CASE WHEN side='buy' AND status='filled' THEN 1 ELSE 0 END) AS buys,
+            SUM(CASE WHEN side='buy' AND status='filled' AND metadata LIKE '%rotation%' THEN 1 ELSE 0 END) AS rotation_buys,
+            SUM(CASE WHEN side='sell' AND status='filled' THEN 1 ELSE 0 END) AS sells
+        FROM crypto_order_executions
+        WHERE created_at >= ? AND created_at <= ?
+        """,
+        (start_ts, ref_ts),
+    )
+    row = cur.fetchone()
+    buys = int((row[0] or 0))
+    rotation_buys = int((row[1] or 0))
+    sells = int((row[2] or 0))
+
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) AS sell_count,
+            AVG(CASE WHEN profit_rate > 0 THEN 1.0 ELSE 0.0 END) AS win_rate,
+            AVG(profit_rate) AS avg_profit_rate
+        FROM crypto_trading_history
+        WHERE sell_date >= ? AND sell_date <= ?
+        """,
+        (start_ts, ref_ts),
+    )
+    row2 = cur.fetchone()
+    sell_count = int((row2[0] or 0))
+    win_rate = _safe_float(row2[1]) * 100.0
+    avg_profit_rate = _safe_float(row2[2])
+    rotation_buy_ratio = (rotation_buys / buys) if buys > 0 else 0.0
+    cost_adjusted_avg_trade_pct = avg_profit_rate - roundtrip_cost_pct
+
+    return {
+        "window_ref_ts": ref_ts,
+        "window_hours": 24,
+        "buys": buys,
+        "rotation_buys": rotation_buys,
+        "sells": sells,
+        "sell_count": sell_count,
+        "win_rate": win_rate,
+        "avg_profit_rate": avg_profit_rate,
+        "cost_adjusted_avg_trade_pct": cost_adjusted_avg_trade_pct,
+        "rotation_buy_ratio": rotation_buy_ratio,
+        "roundtrip_cost_pct": roundtrip_cost_pct,
+    }
+
+
+def build_kpi_summary(points: List[Dict], recent_24h: Dict[str, float]) -> Dict[str, object]:
+    rows = _compute_daily_return_rows(points)
+    downside_btc = _downside_capture(rows, "btc")
+    downside_uni = _downside_capture(rows, "uni")
+    hit_btc = _hit_rate(rows, "btc")
+    hit_uni = _hit_rate(rows, "uni")
+    rotation_buy_ratio = _safe_float(recent_24h.get("rotation_buy_ratio"), 0.0)
+    cost_adjusted_avg_trade_pct = _safe_float(recent_24h.get("cost_adjusted_avg_trade_pct"), 0.0)
+
+    pass_downside_btc = (downside_btc is not None) and (downside_btc <= KPI_TARGET_DOWNSIDE_CAPTURE)
+    pass_downside_uni = (downside_uni is not None) and (downside_uni <= KPI_TARGET_DOWNSIDE_CAPTURE)
+    pass_rotation = rotation_buy_ratio <= KPI_TARGET_ROTATION_BUY_RATIO
+    pass_cost_adjusted = cost_adjusted_avg_trade_pct >= KPI_TARGET_COST_ADJUSTED_AVG_TRADE_PCT
+    overall_pass = pass_downside_btc and pass_downside_uni and pass_rotation and pass_cost_adjusted
+
+    return {
+        "window_days": max(0, len(points) - 1),
+        "downside_capture_vs_btc": None if downside_btc is None else round(downside_btc, 4),
+        "downside_capture_vs_universe": None if downside_uni is None else round(downside_uni, 4),
+        "hit_rate_vs_btc_daily": None if hit_btc is None else round(hit_btc * 100.0, 2),
+        "hit_rate_vs_universe_daily": None if hit_uni is None else round(hit_uni * 100.0, 2),
+        "recent_24h": {
+            "ref_ts": recent_24h.get("window_ref_ts"),
+            "buys": int(_safe_float(recent_24h.get("buys"), 0.0)),
+            "rotation_buys": int(_safe_float(recent_24h.get("rotation_buys"), 0.0)),
+            "sells": int(_safe_float(recent_24h.get("sells"), 0.0)),
+            "sell_count": int(_safe_float(recent_24h.get("sell_count"), 0.0)),
+            "win_rate": round(_safe_float(recent_24h.get("win_rate"), 0.0), 2),
+            "avg_profit_rate": round(_safe_float(recent_24h.get("avg_profit_rate"), 0.0), 4),
+            "cost_adjusted_avg_trade_pct": round(cost_adjusted_avg_trade_pct, 4),
+            "rotation_buy_ratio": round(rotation_buy_ratio, 4),
+            "roundtrip_cost_pct": round(_safe_float(recent_24h.get("roundtrip_cost_pct"), KPI_ROUNDTRIP_COST_PCT), 4),
+        },
+        "targets": {
+            "downside_capture_max": KPI_TARGET_DOWNSIDE_CAPTURE,
+            "rotation_buy_ratio_max": KPI_TARGET_ROTATION_BUY_RATIO,
+            "cost_adjusted_avg_trade_pct_min": KPI_TARGET_COST_ADJUSTED_AVG_TRADE_PCT,
+        },
+        "passes": {
+            "downside_capture_vs_btc": pass_downside_btc,
+            "downside_capture_vs_universe": pass_downside_uni,
+            "rotation_buy_ratio_24h": pass_rotation,
+            "cost_adjusted_avg_trade_pct_24h": pass_cost_adjusted,
+            "overall": overall_pass,
+        },
+    }
 
 
 def _classify_exit_reason_from_metadata(metadata: str | None) -> str:
@@ -623,6 +796,7 @@ def build_output(
     order_executions: List[Dict],
     recent_cycles: List[Dict],
     exit_reason_counts: Dict[str, int],
+    recent_24h_kpi: Dict[str, float],
     logic_change_ts: str,
 ) -> Dict:
     if not btc_daily:
@@ -662,6 +836,7 @@ def build_output(
     universe_final = points[-1]["universe_return_pct"]
     alpha = algo_final - btc_final
     universe_alpha = algo_final - universe_final
+    kpi_summary = build_kpi_summary(points=points, recent_24h=recent_24h_kpi)
 
     stamped_orders = [
         {**order, "logic_change_ts": logic_change_ts} for order in order_executions
@@ -689,6 +864,7 @@ def build_output(
                 "rotation": int(exit_reason_counts.get("rotation", 0)),
                 "normal": int(exit_reason_counts.get("normal", 0)),
             },
+            "kpi": kpi_summary,
         },
         "points": points,
         "holdings": holdings,
@@ -718,6 +894,7 @@ def main():
         recent_cycles = load_recent_cycles(PROJECT_ROOT / "logs")
         start_date = get_strategy_start_date(conn)
         exit_reason_counts = load_exit_reason_counts(conn, start_date=start_date)
+        recent_24h_kpi = load_recent_24h_kpi_metrics(conn)
 
         try:
             if args.days is not None and args.days > 0:
@@ -759,6 +936,7 @@ def main():
             order_executions=order_executions,
             recent_cycles=recent_cycles,
             exit_reason_counts=exit_reason_counts,
+            recent_24h_kpi=recent_24h_kpi,
             logic_change_ts=logic_change_ts,
         )
 
