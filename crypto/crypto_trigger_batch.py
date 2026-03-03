@@ -66,6 +66,16 @@ class TriggerThresholds:
     volatility_trend_ret_4_min_pct: float = 0.25
     range_breakout_volume_ratio_min: float = 1.10
     volatility_tightening_factor: float = 0.25
+    # Shared entry-quality gates to reduce weak setups.
+    entry_min_trend_gap_pct: float = 0.0
+    entry_min_volume_ratio_20: float = 1.0
+    entry_max_atr_pct: float = 0.09
+    # Risk/target sizing knobs (tunable from CLI).
+    stop_loss_atr_multiplier: float = 1.35
+    stop_loss_min_pct: float = 0.02
+    stop_loss_max_pct: float = 0.075
+    target_to_stop_ratio: float = 2.2
+    target_min_pct: float = 0.055
 
 
 def _effective_thresholds(snapshot: pd.DataFrame, base: TriggerThresholds) -> TriggerThresholds:
@@ -82,6 +92,14 @@ def _effective_thresholds(snapshot: pd.DataFrame, base: TriggerThresholds) -> Tr
         volatility_trend_ret_4_min_pct=base.volatility_trend_ret_4_min_pct * (1.0 + tighten),
         range_breakout_volume_ratio_min=base.range_breakout_volume_ratio_min * (1.0 + tighten),
         volatility_tightening_factor=base.volatility_tightening_factor,
+        entry_min_trend_gap_pct=base.entry_min_trend_gap_pct,
+        entry_min_volume_ratio_20=base.entry_min_volume_ratio_20,
+        entry_max_atr_pct=base.entry_max_atr_pct,
+        stop_loss_atr_multiplier=base.stop_loss_atr_multiplier,
+        stop_loss_min_pct=base.stop_loss_min_pct,
+        stop_loss_max_pct=base.stop_loss_max_pct,
+        target_to_stop_ratio=base.target_to_stop_ratio,
+        target_min_pct=base.target_min_pct,
     )
 
 
@@ -123,6 +141,16 @@ def _normalize_score(df: pd.DataFrame, cols: List[Tuple[str, float]]) -> pd.Seri
         score += normalized * weight
 
     return score / weight_sum
+
+
+def _entry_quality_mask(df: pd.DataFrame, thresholds: TriggerThresholds) -> pd.Series:
+    """Cross-trigger quality gate to avoid low-quality entries."""
+    return (
+        (df["trend_gap_pct"] >= thresholds.entry_min_trend_gap_pct)
+        & (df["volume_ratio_20"] >= thresholds.entry_min_volume_ratio_20)
+        & (df["atr_pct"] > 0.0)
+        & (df["atr_pct"] <= thresholds.entry_max_atr_pct)
+    )
 
 
 def _resolve_fetch_interval(interval: str) -> Tuple[str, str | None]:
@@ -269,6 +297,7 @@ def trigger_volume_momentum(snapshot: pd.DataFrame, thresholds: TriggerThreshold
         (df["volume_ratio_20"] >= thresholds.volume_momentum_volume_ratio_min)
         & (df["ret_1_pct"] >= thresholds.volume_momentum_ret_1_min_pct)
         & (df["ema20_gt_ema50"])
+        & _entry_quality_mask(df, thresholds)
     )
     df = df[cond]
     if df.empty:
@@ -295,6 +324,7 @@ def trigger_volatility_trend(snapshot: pd.DataFrame, thresholds: TriggerThreshol
         (df["atr_expansion"] >= 1.0)
         & (df["ret_4_pct"] >= thresholds.volatility_trend_ret_4_min_pct)
         & (df["ema20_gt_ema50"])
+        & _entry_quality_mask(df, thresholds)
     )
     df = df[cond]
     if df.empty:
@@ -321,6 +351,7 @@ def trigger_range_breakout(snapshot: pd.DataFrame, thresholds: TriggerThresholds
         (df["breakout_pct"] >= -0.05)
         & (df["volume_ratio_20"] >= thresholds.range_breakout_volume_ratio_min)
         & (df["ret_1_pct"] >= 0.0)
+        & _entry_quality_mask(df, thresholds)
     )
     df = df[cond]
     if df.empty:
@@ -337,14 +368,24 @@ def trigger_range_breakout(snapshot: pd.DataFrame, thresholds: TriggerThresholds
     return df.sort_values("composite_score", ascending=False).head(top_n)
 
 
-def calculate_agent_fit_metrics(row: pd.Series) -> Dict[str, float]:
+def calculate_agent_fit_metrics(row: pd.Series, thresholds: TriggerThresholds) -> Dict[str, float]:
     """Compute stop/target/risk-reward and agent-fit score."""
     price = float(row["close"])
     atr_pct = max(float(row.get("atr_pct", 0.0)), 0.0)
     volume_ratio = max(float(row.get("volume_ratio_20", 0.0)), 0.0)
 
-    stop_loss_pct = float(np.clip(1.2 * atr_pct, 0.02, 0.06))
-    target_pct = max(2.0 * stop_loss_pct, 0.05)
+    # Slightly wider ATR-based stop for crypto noise, with tighter floor/ceiling controls.
+    stop_min = min(thresholds.stop_loss_min_pct, thresholds.stop_loss_max_pct)
+    stop_max = max(thresholds.stop_loss_min_pct, thresholds.stop_loss_max_pct)
+    stop_loss_pct = float(
+        np.clip(
+            thresholds.stop_loss_atr_multiplier * atr_pct,
+            stop_min,
+            stop_max,
+        )
+    )
+    # Keep a configurable R:R edge over stop distance.
+    target_pct = max(thresholds.target_to_stop_ratio * stop_loss_pct, thresholds.target_min_pct)
     risk_reward_ratio = target_pct / stop_loss_pct if stop_loss_pct > 0 else 0.0
 
     stop_loss_price = price * (1.0 - stop_loss_pct)
@@ -364,17 +405,18 @@ def calculate_agent_fit_metrics(row: pd.Series) -> Dict[str, float]:
     }
 
 
-def score_candidates_by_agent_criteria(df: pd.DataFrame) -> pd.DataFrame:
+def score_candidates_by_agent_criteria(df: pd.DataFrame, thresholds: TriggerThresholds) -> pd.DataFrame:
     if df.empty:
         return df
 
     out = df.copy()
-    metrics = out.apply(calculate_agent_fit_metrics, axis=1, result_type="expand")
+    metrics = out.apply(lambda row: calculate_agent_fit_metrics(row, thresholds), axis=1, result_type="expand")
     return pd.concat([out, metrics], axis=1)
 
 
 def select_final_symbols(
     triggers: Dict[str, pd.DataFrame],
+    thresholds: TriggerThresholds,
     use_hybrid: bool = True,
     max_positions: int = 3,
 ) -> Dict[str, pd.DataFrame]:
@@ -384,7 +426,7 @@ def select_final_symbols(
     for name, df in triggers.items():
         if df.empty:
             continue
-        scored = score_candidates_by_agent_criteria(df)
+        scored = score_candidates_by_agent_criteria(df, thresholds=thresholds)
         if use_hybrid:
             score_norm = _normalize_score(scored, cols=[("composite_score", 1.0)])
             scored["composite_score_norm"] = score_norm
@@ -442,7 +484,7 @@ def fallback_candidates(snapshot: pd.DataFrame, top_n: int = 3) -> pd.DataFrame:
 
     df = snapshot.copy()
     # Prefer trend-aligned and sufficiently liquid symbols first.
-    preferred = df[(df["ema20_gt_ema50"]) & (df["volume_ratio_20"] >= 0.9)].copy()
+    preferred = df[(df["ema20_gt_ema50"]) & (df["volume_ratio_20"] >= 1.0) & (df["atr_pct"] <= 0.09)].copy()
     if preferred.empty:
         preferred = df.copy()
 
@@ -542,7 +584,7 @@ def run_batch(
     for name, df in triggers.items():
         logger.info("%s candidates: %d", name, len(df))
 
-    final_results = select_final_symbols(triggers, use_hybrid=True, max_positions=max_positions)
+    final_results = select_final_symbols(triggers, thresholds=thresholds, use_hybrid=True, max_positions=max_positions)
     if not final_results:
         fallback_limit = max(1, min(max_positions, fallback_max_entries))
         fb = fallback_candidates(snapshot, top_n=fallback_limit)
@@ -554,6 +596,7 @@ def run_batch(
             )
             final_results = select_final_symbols(
                 {"Fallback Momentum": fb},
+                thresholds=thresholds,
                 use_hybrid=True,
                 max_positions=fallback_limit,
             )
@@ -602,6 +645,14 @@ if __name__ == "__main__":
     parser.add_argument("--ret4-min-pct", type=float, default=0.25, help="Base minimum ret_4_pct for volatility-trend trigger")
     parser.add_argument("--breakout-volume-ratio-min", type=float, default=1.10, help="Base minimum volume_ratio_20 for range-breakout trigger")
     parser.add_argument("--volatility-tightening-factor", type=float, default=0.25, help="Dynamic threshold tightening factor based on median ATR expansion")
+    parser.add_argument("--entry-min-trend-gap-pct", type=float, default=0.0, help="Shared minimum trend_gap_pct across triggers")
+    parser.add_argument("--entry-min-volume-ratio", type=float, default=1.0, help="Shared minimum volume_ratio_20 across triggers")
+    parser.add_argument("--entry-max-atr-pct", type=float, default=0.09, help="Shared maximum ATR%% (fraction) across triggers")
+    parser.add_argument("--stop-loss-atr-multiplier", type=float, default=1.35, help="ATR multiplier for stop-loss sizing")
+    parser.add_argument("--stop-loss-min-pct", type=float, default=0.02, help="Minimum stop-loss percent as fraction")
+    parser.add_argument("--stop-loss-max-pct", type=float, default=0.075, help="Maximum stop-loss percent as fraction")
+    parser.add_argument("--target-to-stop-ratio", type=float, default=2.2, help="Target-to-stop distance ratio")
+    parser.add_argument("--target-min-pct", type=float, default=0.055, help="Minimum target percent as fraction")
     parser.add_argument("--log-level", default="INFO", help="Logging level")
     parser.add_argument("--output", help="Optional output json file path")
     args = parser.parse_args()
@@ -619,6 +670,14 @@ if __name__ == "__main__":
             volatility_trend_ret_4_min_pct=max(args.ret4_min_pct, 0.0),
             range_breakout_volume_ratio_min=max(args.breakout_volume_ratio_min, 0.0),
             volatility_tightening_factor=max(args.volatility_tightening_factor, 0.0),
+            entry_min_trend_gap_pct=args.entry_min_trend_gap_pct,
+            entry_min_volume_ratio_20=max(args.entry_min_volume_ratio, 0.0),
+            entry_max_atr_pct=max(args.entry_max_atr_pct, 0.01),
+            stop_loss_atr_multiplier=max(args.stop_loss_atr_multiplier, 0.1),
+            stop_loss_min_pct=max(args.stop_loss_min_pct, 0.001),
+            stop_loss_max_pct=max(args.stop_loss_max_pct, 0.002),
+            target_to_stop_ratio=max(args.target_to_stop_ratio, 0.1),
+            target_min_pct=max(args.target_min_pct, 0.001),
         ),
         log_level=args.log_level,
         output_file=args.output,

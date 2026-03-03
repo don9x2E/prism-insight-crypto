@@ -118,10 +118,13 @@ class CryptoTrackingAgent:
     """Phase 2 crypto decision and persistence agent."""
 
     MAX_SLOTS = 10
-    ROTATION_MIN_SCORE_DELTA = 0.12
+    ROTATION_MIN_SCORE_DELTA = 0.16
     ROTATION_LOSS_PRIORITY_PCT = -2.0
     ROTATION_MAX_PER_CYCLE = 1
-    ROTATION_MIN_HOLDING_HOURS = 4.0
+    ROTATION_MIN_HOLDING_HOURS = 6.0
+    ROTATION_MIN_CANDIDATE_RR = 1.8
+    ROTATION_MIN_FINAL_SCORE = 0.50
+    ROTATION_MIN_BUY_SCORE_EDGE = 1
     ROTATION_REENTRY_COOLDOWN_HOURS = 0.0
 
     def __init__(
@@ -132,6 +135,10 @@ class CryptoTrackingAgent:
         execute_trades: bool = False,
         trade_mode: str = "paper",
         quote_amount: float = 100.0,
+        rotation_min_score_delta: float = ROTATION_MIN_SCORE_DELTA,
+        rotation_min_holding_hours: float = ROTATION_MIN_HOLDING_HOURS,
+        rotation_min_candidate_rr: float = ROTATION_MIN_CANDIDATE_RR,
+        rotation_min_final_score: float = ROTATION_MIN_FINAL_SCORE,
         rotation_reentry_cooldown_hours: float = ROTATION_REENTRY_COOLDOWN_HOURS,
     ):
         self.db_path = db_path
@@ -141,6 +148,10 @@ class CryptoTrackingAgent:
         self.execute_trades = execute_trades
         self.trade_mode = trade_mode
         self.quote_amount = quote_amount
+        self.rotation_min_score_delta = max(0.0, float(rotation_min_score_delta))
+        self.rotation_min_holding_hours = max(0.0, float(rotation_min_holding_hours))
+        self.rotation_min_candidate_rr = max(0.0, float(rotation_min_candidate_rr))
+        self.rotation_min_final_score = max(0.0, float(rotation_min_final_score))
         self.rotation_reentry_cooldown_hours = max(0.0, float(rotation_reentry_cooldown_hours))
 
         self.conn: sqlite3.Connection | None = None
@@ -161,7 +172,11 @@ class CryptoTrackingAgent:
             self.paper_trader = PaperCryptoTrading(self.cursor, self.conn)
             logger.info("Paper trading adapter enabled (quote_amount=%.2f)", self.quote_amount)
         logger.info(
-            "CryptoTrackingAgent initialized (rotation_reentry_cooldown_hours=%.2f)",
+            "CryptoTrackingAgent initialized (rotation_delta=%.2f, min_hold=%.2fh, min_rr=%.2f, min_final=%.2f, rotation_reentry_cooldown_hours=%.2f)",
+            self.rotation_min_score_delta,
+            self.rotation_min_holding_hours,
+            self.rotation_min_candidate_rr,
+            self.rotation_min_final_score,
             self.rotation_reentry_cooldown_hours,
         )
         return True
@@ -661,6 +676,23 @@ class CryptoTrackingAgent:
     ) -> Tuple[bool, str, int]:
         """Replace weakest holding with stronger new candidate when slots are full."""
         new_final_score = _safe_float(candidate.get("final_score"), 0.0)
+        candidate_rr = _safe_float(candidate.get("risk_reward_ratio"), 0.0)
+        if new_final_score < self.rotation_min_final_score:
+            return False, (
+                f"rotation blocked: final_score {new_final_score:.3f} "
+                f"< {self.rotation_min_final_score:.3f}"
+            ), 0
+        if candidate_rr < self.rotation_min_candidate_rr:
+            return False, (
+                f"rotation blocked: risk_reward_ratio {candidate_rr:.2f} "
+                f"< {self.rotation_min_candidate_rr:.2f}"
+            ), 0
+        if buy_score < (min_score + self.ROTATION_MIN_BUY_SCORE_EDGE):
+            return False, (
+                f"rotation blocked: buy_score {buy_score} "
+                f"< min_score+edge ({min_score}+{self.ROTATION_MIN_BUY_SCORE_EDGE})"
+            ), 0
+
         self.cursor.execute(
             """
             SELECT symbol, asset_name, buy_price, buy_date, quantity, notional_usd, current_price,
@@ -689,21 +721,21 @@ class CryptoTrackingAgent:
 
         eligible = [
             x for x in ranked
-            if new_final_score >= (x[1] + self.ROTATION_MIN_SCORE_DELTA)
-            and x[4] >= self.ROTATION_MIN_HOLDING_HOURS
+            if new_final_score >= (x[1] + self.rotation_min_score_delta)
+            and x[4] >= self.rotation_min_holding_hours
         ]
         if not eligible:
-            too_fresh = [x for x in ranked if x[4] < self.ROTATION_MIN_HOLDING_HOURS]
+            too_fresh = [x for x in ranked if x[4] < self.rotation_min_holding_hours]
             if too_fresh:
                 freshest = min(too_fresh, key=lambda x: x[4])
                 return False, (
-                    f"rotation blocked: min holding {self.ROTATION_MIN_HOLDING_HOURS:.1f}h "
+                    f"rotation blocked: min holding {self.rotation_min_holding_hours:.1f}h "
                     f"(freshest {freshest[0]['symbol']}={freshest[4]:.2f}h)"
                 ), 0
             weakest = min(ranked, key=lambda x: x[1])
             return False, (
                 f"rotation blocked: new_final={new_final_score:.3f} "
-                f"< weakest+delta ({weakest[1]:.3f}+{self.ROTATION_MIN_SCORE_DELTA:.2f})"
+                f"< weakest+delta ({weakest[1]:.3f}+{self.rotation_min_score_delta:.2f})"
             ), 0
 
         # Keep score-delta gate, then prioritize deeper losers (rotation-loss threshold first),
@@ -928,6 +960,10 @@ if __name__ == "__main__":
     parser.add_argument("--execute-trades", action="store_true", help="Execute paper trades on entry")
     parser.add_argument("--trade-mode", default="paper", help="paper or real (real not implemented)")
     parser.add_argument("--quote-amount", type=float, default=100.0, help="Quote amount per buy order in USD")
+    parser.add_argument("--rotation-min-score-delta", type=float, default=CryptoTrackingAgent.ROTATION_MIN_SCORE_DELTA, help="Minimum final_score edge vs holding for rotation")
+    parser.add_argument("--rotation-min-holding-hours", type=float, default=CryptoTrackingAgent.ROTATION_MIN_HOLDING_HOURS, help="Minimum holding hours before a position is rotation-eligible")
+    parser.add_argument("--rotation-min-candidate-rr", type=float, default=CryptoTrackingAgent.ROTATION_MIN_CANDIDATE_RR, help="Minimum candidate risk_reward_ratio for rotation")
+    parser.add_argument("--rotation-min-final-score", type=float, default=CryptoTrackingAgent.ROTATION_MIN_FINAL_SCORE, help="Minimum candidate final_score for rotation")
     parser.add_argument(
         "--rotation-reentry-cooldown-hours",
         type=float,
@@ -944,6 +980,10 @@ if __name__ == "__main__":
             execute_trades=args.execute_trades,
             trade_mode=args.trade_mode,
             quote_amount=args.quote_amount,
+            rotation_min_score_delta=max(args.rotation_min_score_delta, 0.0),
+            rotation_min_holding_hours=max(args.rotation_min_holding_hours, 0.0),
+            rotation_min_candidate_rr=max(args.rotation_min_candidate_rr, 0.0),
+            rotation_min_final_score=max(args.rotation_min_final_score, 0.0),
             rotation_reentry_cooldown_hours=max(args.rotation_reentry_cooldown_hours, 0.0),
         )
         await agent.initialize()
